@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.model.device_state import DeviceState
 from ge150.ui.working import Spinner
 
@@ -134,7 +135,7 @@ class PresetList(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Buscar preset…")
+        self.search.setPlaceholderText(tr("Buscar preset…"))
         self.search.setClearButtonEnabled(True)
         self.search.textChanged.connect(self._filter)
         self.list = _DragList()
@@ -247,12 +248,12 @@ class PresetList(QWidget):
             return
         slot = int(item.data(SLOT_ROLE))
         menu = QMenu(self)
-        load = QAction("Cargar en la pedalera", menu)
+        load = QAction(tr("Cargar en la pedalera"), menu)
         load.triggered.connect(lambda: self.activated.emit(slot))
         menu.addAction(load)
         menu.addSeparator()
         for name, label in self.ACTIONS:
-            action = QAction(label, menu)
+            action = QAction(tr(label), menu)
             action.setEnabled(name != "paste" or self.clipboard is not None)
             action.triggered.connect(lambda _=False, n=name: self.action_requested.emit(n, slot))
             menu.addAction(action)

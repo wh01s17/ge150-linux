@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import contextlib
 import hashlib
+import html
 import json
 import os
 import secrets
@@ -27,6 +28,8 @@ from dataclasses import asdict, dataclass, field
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
+
+from ge150.i18n import tr
 
 BASE_URL = "https://www.tone3000.com"
 API = "/api/v1"
@@ -134,8 +137,9 @@ class _Handler(BaseHTTPRequestHandler):
             return
         self.server.result = parse_callback(self.path)
         ok = not self.server.result.error
-        body = ("<h2>GE150 Editor</h2><p>" + ("Listo: vuelve al editor." if ok else
-                f"TONE3000 respondió: {self.server.result.error}") + "</p>").encode()
+        message = (tr("Listo: vuelve al editor.") if ok else
+                   tr("TONE3000 respondió: {error}", error=self.server.result.error))
+        body = f"<h2>GE150 Editor</h2><p>{html.escape(message)}</p>".encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -152,7 +156,7 @@ def wait_for_callback(port: int = REDIRECT_PORT, timeout: float = LOGIN_TIMEOUT_
     try:
         server = _CallbackServer(("127.0.0.1", port), _Handler)
     except OSError as exc:
-        raise Tone3000Error(f"port {port} is busy: {exc}") from exc
+        raise Tone3000Error(tr("port {port} is busy: {error}", port=port, error=exc)) from exc
     server.timeout = 0.5
     deadline = time.monotonic() + timeout
     try:
@@ -163,7 +167,7 @@ def wait_for_callback(port: int = REDIRECT_PORT, timeout: float = LOGIN_TIMEOUT_
     finally:
         server.server_close()
     if server.result is None:
-        raise Tone3000Error("no answer from TONE3000 (timed out)")
+        raise Tone3000Error(tr("no answer from TONE3000 (timed out)"))
     return server.result
 
 
@@ -249,7 +253,7 @@ class Tone3000Client:
     def authorize_url(self, challenge: str, state: str, prompt: str = "",
                       tone_id: str = "") -> str:
         if not self.creds.client_id:
-            raise Tone3000Error("set your TONE3000 publishable key first (client_id)")
+            raise Tone3000Error(tr("set your TONE3000 publishable key first (client_id)"))
         params = {"client_id": self.creds.client_id, "redirect_uri": self.redirect_uri,
                   "response_type": "code", "code_challenge": challenge,
                   "code_challenge_method": "S256", "state": state, "menubar": "true"}
@@ -270,9 +274,9 @@ class Tone3000Client:
     def finish(self, pending: Pending, callback: Callback) -> Callback:
         """Check the redirect TONE3000 sent back and exchange its code for tokens."""
         if callback.state != pending.state:
-            raise Tone3000Error("state mismatch: ignoring the answer")
+            raise Tone3000Error(tr("state mismatch: ignoring the answer"))
         if callback.error or not callback.code:
-            raise Tone3000Error(f"TONE3000: {callback.error or 'no code'}")
+            raise Tone3000Error(f"TONE3000: {callback.error or tr('no code')}")
         self._token({"grant_type": "authorization_code", "code": callback.code,
                      "code_verifier": pending.verifier, "redirect_uri": self.redirect_uri,
                      "client_id": self.creds.client_id})
@@ -295,7 +299,7 @@ class Tone3000Client:
         """Open the TONE3000 catalogue (IRs only); returns the chosen tone id."""
         callback = self._flow("select_tone")
         if not callback.tone_id:
-            raise Tone3000Error("no tone was selected")
+            raise Tone3000Error(tr("no tone was selected"))
         return int(callback.tone_id)
 
     def _token(self, form: dict[str, str]) -> None:
@@ -307,13 +311,13 @@ class Tone3000Client:
 
     def _refresh(self) -> None:
         if not self.creds.refresh_token:
-            raise Tone3000Error("sign in to TONE3000 first")
+            raise Tone3000Error(tr("sign in to TONE3000 first"))
         try:
             self._token({"grant_type": "refresh_token", "refresh_token": self.creds.refresh_token,
                          "client_id": self.creds.client_id})
         except Tone3000Error:
             self.logout()  # invalid_grant: the refresh token expired
-            raise Tone3000Error("the TONE3000 session expired: sign in again") from None
+            raise Tone3000Error(tr("the TONE3000 session expired: sign in again")) from None
 
     # --- HTTP ------------------------------------------------------------------------------
 
@@ -333,7 +337,7 @@ class Tone3000Client:
 
     def _access_token(self) -> str:
         if not self.creds.signed_in:
-            raise Tone3000Error("sign in to TONE3000 first")
+            raise Tone3000Error(tr("sign in to TONE3000 first"))
         if time.time() >= self.creds.expires_at:
             self._refresh()
         return self.creds.access_token
@@ -345,10 +349,11 @@ class Tone3000Client:
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", "replace")[:200]
             if exc.code == 429:
-                raise Tone3000Error("TONE3000 rate limit reached: wait a minute") from exc
-            raise Tone3000Error(f"TONE3000 HTTP {exc.code}: {detail}") from exc
+                raise Tone3000Error(tr("TONE3000 rate limit reached: wait a minute")) from exc
+            message = tr("TONE3000 HTTP {code}: {detail}", code=exc.code, detail=detail)
+            raise Tone3000Error(message) from exc
         except urllib.error.URLError as exc:
-            raise Tone3000Error(f"cannot reach TONE3000: {exc.reason}") from exc
+            raise Tone3000Error(tr("cannot reach TONE3000: {reason}", reason=exc.reason)) from exc
 
     # --- API --------------------------------------------------------------------------------
 
@@ -373,17 +378,23 @@ class Tone3000Client:
         """Download one IR of a tone (the first one unless ``model_id`` is given)."""
         tone = self.tone(tone_id)
         if tone.format and tone.format != "ir":
-            raise Tone3000Error(f"tone {tone_id} is a {tone.format} model, not an IR")
+            raise Tone3000Error(tr(
+                "tone {tone} is a {format} model, not an IR", tone=tone_id, format=tone.format,
+            ))
         models = self.models(tone_id)
         if not models:
-            raise Tone3000Error(f"tone {tone_id} has no downloadable files")
+            raise Tone3000Error(tr("tone {tone} has no downloadable files", tone=tone_id))
         model = next((m for m in models if m.id == model_id), None) if model_id else models[0]
         if model is None:
-            raise Tone3000Error(f"tone {tone_id} has no model {model_id}")
+            raise Tone3000Error(tr(
+                "tone {tone} has no model {model}", tone=tone_id, model=model_id,
+            ))
         headers = {"User-Agent": AGENT, "Authorization": f"Bearer {self._access_token()}"}
         data = self._open(urllib.request.Request(model.url, None, headers))
         if not data.startswith(b"RIFF"):
-            raise Tone3000Error(f"{model.name}: the file is not a WAV impulse response")
+            raise Tone3000Error(tr(
+                "{name}: the file is not a WAV impulse response", name=model.name,
+            ))
         folder = cache_dir() / str(tone_id)
         folder.mkdir(parents=True, exist_ok=True)
         path = folder / f"{model.id}.wav"

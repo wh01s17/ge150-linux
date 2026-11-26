@@ -13,6 +13,7 @@ from PySide6.QtCore import QObject, QSettings, QSize, Qt, Signal
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import QHBoxLayout, QMenu, QToolButton, QWidget
 
+from ge150.i18n import tr
 from ge150.services import tone_agent
 from ge150.ui.icons import icon
 from ge150.ui.theme import ACCENT
@@ -79,8 +80,8 @@ class AgentOptions(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-        self.model = Pill("sparkles", "Modelo de IA")
-        self.effort = Pill("gauge", "Esfuerzo de razonamiento: más alto piensa más y tarda más")
+        self.model = Pill("sparkles", tr("Modelo de IA"))
+        self.effort = Pill("gauge", tr("Esfuerzo de razonamiento: más alto piensa más y tarda más"))
         layout.addWidget(self.model)
         layout.addWidget(self.effort)
         self.model.changed.connect(lambda _: self._model_changed())
@@ -94,7 +95,7 @@ class AgentOptions(QWidget):
         cls = tone_agent.AGENTS.get(key)
         if cls is None:
             return
-        self.model.set_choices([("", "Predeterminado")], "")
+        self.model.set_choices([("", tr("Predeterminado"))], "")
         self._fill_efforts(())
 
         def work() -> None:
@@ -115,7 +116,7 @@ class AgentOptions(QWidget):
 
     def _fill(self, key: str) -> None:
         saved = str(self.settings.value(f"ai/{key}/model", ""))
-        self.model.set_choices([(c.id, c.label) for c in self.choices[key]], saved)
+        self.model.set_choices([(c.id, tr(c.label)) for c in self.choices[key]], saved)
         self._model_changed()
 
     def _model_changed(self) -> None:
@@ -126,7 +127,7 @@ class AgentOptions(QWidget):
 
     def _fill_efforts(self, efforts: tuple[str, ...]) -> None:
         saved = str(self.settings.value(f"ai/{self.provider}/effort", ""))
-        self.effort.set_choices([(e, EFFORT_LABELS.get(e, e)) for e in ("", *efforts)], saved)
+        self.effort.set_choices([(e, tr(EFFORT_LABELS.get(e, e))) for e in ("", *efforts)], saved)
 
     def _remember(self) -> None:
         if not self.provider or self.provider not in self.choices:

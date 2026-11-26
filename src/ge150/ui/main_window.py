@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from ge150.formats import mbf, mo_json
+from ge150.i18n import tr
 from ge150.model import device_state as ds
 from ge150.model.preset import NAME_LEN, is_valid_name
 from ge150.protocol.session import DeviceSession
@@ -63,7 +64,10 @@ class MainWindow(QMainWindow):
         self.bridge = StateBridge(self.state, session, self)
         self.ai_host = AiHost(editor, self.runner, self)
         self.ai_host.called.connect(
-            lambda tool: self.statusBar().showMessage(f"IA: {LABELS.get(tool, tool)}", 4000))
+            lambda tool: self.statusBar().showMessage(tr(
+                "IA: {label}",
+                label=tr(LABELS.get(tool, tool)),
+            ), 4000))
         self.setWindowTitle("GE150 Editor")
         self.resize(1280, 820)
 
@@ -80,18 +84,18 @@ class MainWindow(QMainWindow):
         self._loading = QTimer(self)
         self._loading.setInterval(LOADING_DOT_MS)
         self._loading.timeout.connect(self._loading_tick)
-        self.dirty_badge = QLabel("MODIFICADO")
+        self.dirty_badge = QLabel(tr("MODIFICADO"))
         self.dirty_badge.setObjectName("dirtyBadge")
         self.dirty_badge.hide()
-        self.discard_button = QPushButton("Descartar")
+        self.discard_button = QPushButton(tr("Descartar"))
         self.discard_button.setObjectName("discardButton")
         self.discard_button.setIcon(icon("undo", TEXT, 15))
-        self.discard_button.setToolTip("Descartar los cambios y volver al preset guardado")
+        self.discard_button.setToolTip(tr("Descartar los cambios y volver al preset guardado"))
         self.discard_button.clicked.connect(self.discard)
         self.discard_button.hide()
-        self.save_button = QPushButton("Guardar")
+        self.save_button = QPushButton(tr("Guardar"))
         self.save_button.setObjectName("saveButton")
-        self.save_button.setToolTip("Guardar el preset en su ranura (Ctrl+S)")
+        self.save_button.setToolTip(tr("Guardar el preset en su ranura (Ctrl+S)"))
         self.save_button.clicked.connect(self.save_current)
         header_bar = QFrame()
         header_bar.setObjectName("headerBar")
@@ -110,10 +114,10 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(self.dirty_badge)
         header_layout.addStretch(1)
         header_layout.addWidget(self.header)
-        self.ai_button = QPushButton("✦ IA")
+        self.ai_button = QPushButton(tr("✦ IA"))
         self.ai_button.setObjectName("aiButton")
         self.ai_button.setCheckable(True)
-        self.ai_button.setToolTip("Asistente de tono con IA (Ctrl+K)")
+        self.ai_button.setToolTip(tr("Asistente de tono con IA (Ctrl+K)"))
         header_layout.addWidget(self.ai_button)
         header_layout.addWidget(self.discard_button)
         header_layout.addWidget(self.save_button)
@@ -148,10 +152,10 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.setObjectName("mainTabs")
         self.tabs.setDocumentMode(True)
-        self.tabs.addTab(effects, "Efectos")
+        self.tabs.addTab(effects, tr("Efectos"))
         self.tabs.addTab(self.tone3000, "TONE3000")
         self.assistant = AssistantPage(editor, self.runner, self.ai_host)
-        self.tabs.addTab(self.assistant, "Asistente")
+        self.tabs.addTab(self.assistant, tr("Asistente"))
         self.ai_host.proposed.connect(self._proposed)
         central_layout.addWidget(self.tabs, 1)
         self.setCentralWidget(central)
@@ -197,7 +201,7 @@ class MainWindow(QMainWindow):
     # --- menus ---------------------------------------------------------------
 
     def _action(self, menu_name: str, text: str, slot, shortcut: str | None = None) -> QAction:  # type: ignore[no-untyped-def]
-        menu = self._menus.get(menu_name) or self.menuBar().addMenu(menu_name)
+        menu = self._menus.get(menu_name) or self.menuBar().addMenu(tr(menu_name))
         self._menus[menu_name] = menu
         action = QAction(text, self)
         if shortcut:
@@ -208,34 +212,38 @@ class MainWindow(QMainWindow):
 
     def _build_menus(self) -> None:
         self._menus: dict[str, Any] = {}
-        self._action("&Archivo", "Importar .mo al preset seleccionado…", self.import_mo, "Ctrl+I")
-        self._action("&Archivo", "Exportar preset seleccionado…", self.export_mo, "Ctrl+E")
-        self._action("&Archivo", "Exportar los 200 presets…", self.export_all)
-        self._action("&Archivo", "Guardar snapshot JSON…", self.save_snapshot)
-        self._action("&Archivo", "Backup completo (.mbf)…", self.backup)
-        self._action("&Archivo", "Restaurar backup (.mbf)…", self.restore)
-        self._action("&Archivo", "Abrir carpeta de backups automáticos",
+        self._action("&Archivo", tr(
+            "Importar .mo al preset seleccionado…",
+        ), self.import_mo, "Ctrl+I")
+        self._action("&Archivo", tr("Exportar preset seleccionado…"), self.export_mo, "Ctrl+E")
+        self._action("&Archivo", tr("Exportar los 200 presets…"), self.export_all)
+        self._action("&Archivo", tr("Guardar snapshot JSON…"), self.save_snapshot)
+        self._action("&Archivo", tr("Backup completo (.mbf)…"), self.backup)
+        self._action("&Archivo", tr("Restaurar backup (.mbf)…"), self.restore)
+        self._action("&Archivo", tr("Abrir carpeta de backups automáticos"),
                      self.open_auto_backups)
         archive = self._menus["&Archivo"]
         archive.addSeparator()
-        self.shortcuts_action = self._action("&Archivo", "Crear accesos directos…",
+        self.shortcuts_action = self._action("&Archivo", tr("Crear accesos directos…"),
                                              self.toggle_shortcuts)
         archive.aboutToShow.connect(self._refresh_shortcuts_action)
         self._refresh_shortcuts_action()
         archive.addSeparator()
-        self._action("&Archivo", "Salir", self.close, "Ctrl+Q")
-        self._action("&Preset", "Guardar", self.save_current, "Ctrl+S")
-        self._action("&Preset", "Guardar en otra ranura…", self.save_as, "Ctrl+Shift+S")
-        self._action("&Preset", "Renombrar…", lambda: self.rename(self.state.current_slot), "F2")
-        self._action("&Preset", "Descartar cambios", self.discard)
-        self._action("&Herramientas", "IR de usuario…", self.open_ir)
-        self._action("&Herramientas", "Pedal de expresión…", self.open_exp)
-        self._action("&Herramientas", "Sistema y caja de ritmos…", self.open_settings)
-        self._action("&Herramientas", "Mis guitarras…", lambda: self.ai_panel.manage_guitars())
-        self._action("&Herramientas", "Restaurar valores de fábrica…", self.factory_reset)
-        self._action("&Herramientas", "Volver a leer la pedalera", self.start_sync, "F5")
+        self._action("&Archivo", tr("Salir"), self.close, "Ctrl+Q")
+        self._action("&Preset", tr("Guardar"), self.save_current, "Ctrl+S")
+        self._action("&Preset", tr("Guardar en otra ranura…"), self.save_as, "Ctrl+Shift+S")
+        self._action("&Preset", tr(
+            "Renombrar…",
+        ), lambda: self.rename(self.state.current_slot), "F2")
+        self._action("&Preset", tr("Descartar cambios"), self.discard)
+        self._action("&Herramientas", tr("IR de usuario…"), self.open_ir)
+        self._action("&Herramientas", tr("Pedal de expresión…"), self.open_exp)
+        self._action("&Herramientas", tr("Sistema y caja de ritmos…"), self.open_settings)
+        self._action("&Herramientas", tr("Mis guitarras…"), lambda: self.ai_panel.manage_guitars())
+        self._action("&Herramientas", tr("Restaurar valores de fábrica…"), self.factory_reset)
+        self._action("&Herramientas", tr("Volver a leer la pedalera"), self.start_sync, "F5")
         self._build_size_menu()
-        self._action("Ay&uda", "Acerca de", self.about)
+        self._action("Ay&uda", tr("Acerca de"), self.about)
 
     # --- shortcuts to open the editor (pipx/pip installs bring none) -------------
 
@@ -250,13 +258,17 @@ class MainWindow(QMainWindow):
         settings.setValue(self.SHORTCUTS_ASKED, True)
         plan = shortcuts.plan()
         box = QMessageBox(self)
-        box.setWindowTitle("Accesos directos")
+        box.setWindowTitle(tr("Accesos directos"))
         box.setIcon(QMessageBox.Icon.Question)
-        box.setText(f"¿Agregar {shortcuts.NAME} a {plan.describe()}?")
-        box.setInformativeText("Si no, puedes hacerlo cuando quieras desde Archivo → Crear "
-                               "accesos directos.")
-        create = box.addButton("Agregar", QMessageBox.ButtonRole.AcceptRole)
-        box.addButton("Ahora no", QMessageBox.ButtonRole.RejectRole)
+        box.setText(tr(
+            "¿Agregar {name} a {location}?",
+            name=shortcuts.NAME,
+            location=plan.describe(),
+        ))
+        box.setInformativeText(tr("Si no, puedes hacerlo cuando quieras desde Archivo → Crear "
+                               "accesos directos."))
+        create = box.addButton(tr("Agregar"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(tr("Ahora no"), QMessageBox.ButtonRole.RejectRole)
         box.setDefaultButton(create)
         box.exec()
         if box.clickedButton() is create:
@@ -269,23 +281,27 @@ class MainWindow(QMainWindow):
     def _refresh_shortcuts_action(self) -> None:
         plan = shortcuts.plan()
         if plan.menu is None and plan.desktop is None:
-            self.shortcuts_action.setText("Accesos directos (ya los instaló el sistema)")
+            self.shortcuts_action.setText(tr("Accesos directos (ya los instaló el sistema)"))
             self.shortcuts_action.setEnabled(False)
             return
         self.shortcuts_action.setEnabled(True)
-        self.shortcuts_action.setText("Quitar accesos directos" if self._own_shortcuts()
-                                      else "Crear accesos directos…")
+        self.shortcuts_action.setText(tr("Quitar accesos directos") if self._own_shortcuts()
+                                      else tr("Crear accesos directos…"))
 
     def toggle_shortcuts(self) -> None:
         if not self._own_shortcuts():
             self._create_shortcuts()
-        elif self._confirm(f"¿Quitar {shortcuts.NAME} de {shortcuts.plan().describe()}?"):
+        elif self._confirm(tr(
+            "¿Quitar {name} de {location}?",
+            name=shortcuts.NAME,
+            location=shortcuts.plan().describe(),
+        )):
             try:
                 shortcuts.remove()
             except OSError as exc:
-                self._error(f"No se pudieron quitar los accesos directos: {exc}")
+                self._error(tr("No se pudieron quitar los accesos directos: {exc}", exc=exc))
                 return
-            self.statusBar().showMessage("Accesos directos quitados", 5000)
+            self.statusBar().showMessage(tr("Accesos directos quitados"), 5000)
         self._refresh_shortcuts_action()
 
     def _create_shortcuts(self) -> None:
@@ -293,20 +309,24 @@ class MainWindow(QMainWindow):
         try:
             shortcuts.install()
         except OSError as exc:
-            self._error(f"No se pudieron crear los accesos directos: {exc}")
+            self._error(tr("No se pudieron crear los accesos directos: {exc}", exc=exc))
             return
-        self.statusBar().showMessage(f"{shortcuts.NAME} ya está en {plan.describe()}", 8000)
+        self.statusBar().showMessage(tr(
+            "{name} ya está en {location}",
+            name=shortcuts.NAME,
+            location=plan.describe(),
+        ), 8000)
         self._refresh_shortcuts_action()
 
     def _build_size_menu(self) -> None:
         """Ver → Tamaño de la interfaz: automatic (from the screen) or a fixed scale."""
-        menu = self._menus.get("&Ver") or self.menuBar().addMenu("&Ver")
+        menu = self._menus.get("&Ver") or self.menuBar().addMenu(tr("&Ver"))
         self._menus["&Ver"] = menu
-        sizes = menu.addMenu("Tamaño de la interfaz")
+        sizes = menu.addMenu(tr("Tamaño de la interfaz"))
         group = QActionGroup(self)
         current = scale.preference()
         for value in scale.CHOICES:
-            label = ("Automático (según la pantalla)" if value == scale.AUTO
+            label = (tr("Automático (según la pantalla)") if value == scale.AUTO
                      else f"{float(value) * 100:.0f} %")
             action = QAction(label, self, checkable=True)
             action.setChecked(value == current)
@@ -319,8 +339,8 @@ class MainWindow(QMainWindow):
             return
         scale.set_preference(value)
         answer = QMessageBox.question(
-            self, "Tamaño de la interfaz",
-            "El nuevo tamaño se aplica al reiniciar el editor. ¿Reiniciarlo ahora?")
+            self, tr("Tamaño de la interfaz"),
+            tr("El nuevo tamaño se aplica al reiniciar el editor. ¿Reiniciarlo ahora?"))
         if answer == QMessageBox.StandardButton.Yes and self.close():
             QApplication.exit(scale.RESTART)
 
@@ -341,8 +361,8 @@ class MainWindow(QMainWindow):
     def _loading_tick(self) -> None:
         self._dots = self._dots % 3 + 1
         dots = "." * self._dots
-        self.name.setText(f"Conectando{dots}")
-        self.statusBar().showMessage(f"Leyendo la pedalera{dots}")
+        self.name.setText(tr("Conectando{dots}", dots=dots))
+        self.statusBar().showMessage(tr("Leyendo la pedalera{dots}", dots=dots))
 
     def _stop_loading(self) -> None:
         if self._loading.isActive():
@@ -354,7 +374,7 @@ class MainWindow(QMainWindow):
         info = self.state.info
         version = f"{info.name} {info.firmware}" if info else "?"
         self.status_label.setText(f"{version}  ·  {self.session.transport.description}")
-        self.statusBar().showMessage("Listo", 3000)
+        self.statusBar().showMessage(tr("Listo"), 3000)
         self.central.setEnabled(True)
         self.presets.reload()
         self.assistant.reload_presets()
@@ -407,7 +427,7 @@ class MainWindow(QMainWindow):
         slot = self.state.current_slot
         stored = self.state.presets.get(slot or 0)
         name = stored.name if stored else ""
-        mark = "   (modificado)" if self.state.dirty else ""
+        mark = tr("   (modificado)") if self.state.dirty else ""
         self.header.setText(f"{slot or '-':>3}  {name}{mark}")
         self.number.setText(f"{slot:03d}" if slot else "-")
         self.name.setText(name.strip() or "-")
@@ -417,10 +437,12 @@ class MainWindow(QMainWindow):
     def _on_disconnect(self, reason: str) -> None:
         self._stop_loading()
         self.central.setEnabled(False)
-        self.status_label.setText("Desconectada")
-        QMessageBox.warning(self, "Pedalera desconectada",
-                            f"Se perdió la conexión con la GE150:\n{reason}\n\n"
-                            "Vuelve a conectarla y reinicia el editor.")
+        self.status_label.setText(tr("Desconectada"))
+        message = tr(
+            "Se perdió la conexión con la GE150:\n{reason}\n\n"
+            "Vuelve a conectarla y reinicia el editor.", reason=reason,
+        )
+        QMessageBox.warning(self, tr("Pedalera desconectada"), message)
 
     def _error(self, message: str) -> None:
         self._stop_loading()
@@ -430,7 +452,7 @@ class MainWindow(QMainWindow):
     # --- preset actions ------------------------------------------------------
 
     def _confirm(self, text: str) -> bool:
-        answer = QMessageBox.question(self, "Confirmar", text)
+        answer = QMessageBox.question(self, tr("Confirmar"), text)
         return answer == QMessageBox.StandardButton.Yes
 
     def _resolve_dirty(self) -> bool:
@@ -438,8 +460,8 @@ class MainWindow(QMainWindow):
         if not self.state.dirty:
             return True
         answer = QMessageBox.question(
-            self, "Cambios sin guardar",
-            "El preset actual tiene cambios sin guardar. ¿Guardarlos antes de continuar?",
+            self, tr("Cambios sin guardar"),
+            tr("El preset actual tiene cambios sin guardar. ¿Guardarlos antes de continuar?"),
             QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard
             | QMessageBox.StandardButton.Cancel)
         if answer == QMessageBox.StandardButton.Cancel:
@@ -459,43 +481,58 @@ class MainWindow(QMainWindow):
     def save_current(self) -> None:
         slot = self.state.current_slot
         stored = self.state.presets.get(slot or 0)
-        if slot and self._confirm(f"¿Guardar los cambios en el preset {slot} "
-                                  f"({stored.name if stored else ''})?"):
+        if slot and self._confirm(tr(
+            "¿Guardar los cambios en el preset {slot} ({name})?",
+            slot=slot,
+            name=stored.name if stored else '',
+        )):
             self.runner.run(self.editor.save, lambda _: self._refresh_header(), self._error)
 
     def save_as(self) -> None:
-        slot, ok = QInputDialog.getInt(self, "Guardar en", "Ranura de destino (1-200):",
+        slot, ok = QInputDialog.getInt(self, tr("Guardar en"), tr("Ranura de destino (1-200):"),
                                        self.presets.selected_slot() or 1, 1, 200)
         if not ok:
             return
         current = self.state.presets.get(self.state.current_slot or 0)
-        name, ok = QInputDialog.getText(self, "Nombre", "Nombre del preset:",
+        name, ok = QInputDialog.getText(self, tr("Nombre"), tr("Nombre del preset:"),
                                         text=current.name if current else "")
         if not ok or not self._valid_name(name):
             return
         target = self.state.presets.get(slot)
-        if self._confirm(f"¿Sobrescribir el preset {slot} ({target.name if target else ''})?"):
+        if self._confirm(tr(
+            "¿Sobrescribir el preset {slot} ({name})?",
+            slot=slot,
+            name=target.name if target else '',
+        )):
             self.runner.run(lambda: self.editor.save(slot, name), None, self._error)
 
     def _valid_name(self, name: str) -> bool:
         if is_valid_name(name):
             return True
-        QMessageBox.warning(self, "Nombre no válido",
-                            f"Hasta {NAME_LEN} caracteres: letras, números, '-' y espacio.")
+        QMessageBox.warning(self, tr("Nombre no válido"),
+                            tr(
+                                "Hasta {NAME_LEN} caracteres: letras, números, '-' y espacio.",
+                                NAME_LEN=NAME_LEN,
+                            ))
         return False
 
     def rename(self, slot: int | None) -> None:
         stored = self.state.presets.get(slot or 0)
         if stored is None:
             return
-        name, ok = QInputDialog.getText(self, "Renombrar", f"Nuevo nombre del preset {slot}:",
+        name, ok = QInputDialog.getText(self, tr(
+            "Renombrar",
+        ), tr(
+            "Nuevo nombre del preset {slot}:",
+            slot=slot,
+        ),
                                         text=stored.name)
         if ok and name != stored.name and self._valid_name(name):
             self.runner.run(lambda: self.editor.rename(stored.slot, name), None, self._error)
 
     def discard(self) -> None:
         slot = self.state.current_slot
-        if slot and self.state.dirty and self._confirm("¿Descartar los cambios sin guardar?"):
+        if slot and self.state.dirty and self._confirm(tr("¿Descartar los cambios sin guardar?")):
             self.runner.run(lambda: self.editor.select(slot), None, self._error)
 
     def _preset_action(self, action: str, slot: int) -> None:
@@ -503,12 +540,16 @@ class MainWindow(QMainWindow):
             self.rename(slot)
         elif action == "copy":
             self.presets.clipboard = slot
-            self.statusBar().showMessage(f"Preset {slot} copiado", 3000)
+            self.statusBar().showMessage(tr("Preset {slot} copiado", slot=slot), 3000)
         elif action == "paste" and self.presets.clipboard is not None:
             source = self.presets.clipboard
             target = self.state.presets.get(slot)
-            if self._confirm(f"¿Sobrescribir el preset {slot} ({target.name if target else ''}) "
-                             f"con el {source}?"):
+            if self._confirm(tr(
+                "¿Sobrescribir el preset {slot} ({name}) con el {source}?",
+                slot=slot,
+                name=target.name if target else '',
+                source=source,
+            )):
                 self.runner.run(lambda: self.editor.copy_preset(source, slot), None, self._error)
         elif action == "export":
             self.export_mo(slot)
@@ -522,11 +563,18 @@ class MainWindow(QMainWindow):
         if self.runner.busy or moving is None:
             return
         low, high = sorted((source, target))
-        shift = "bajan" if source > target else "suben"
+        shift = tr("bajan") if source > target else tr("suben")
         if not self._confirm(
-                f"¿Mover el preset {source:03d} «{moving.name}» a la posición {target:03d}?\n\n"
-                f"Los presets entre medio {shift} un lugar: se reescriben {high - low + 1} "
-                "presets en la pedalera. Antes se hace un backup automático completo."):
+                tr(
+                    "¿Mover el preset {source:03d} «{name}» a la posición {target:03d}?\n\n"
+                    "Los presets entre medio {shift} un lugar: se reescriben {count} presets "
+                    "en la pedalera. Antes se hace un backup automático completo.",
+                    source=source,
+                    name=moving.name,
+                    target=target,
+                    shift=shift,
+                    count=high - low + 1,
+                )):
             return
         current = self.state.current_slot
         if current is not None and low <= current <= high and not self._resolve_dirty():
@@ -536,10 +584,15 @@ class MainWindow(QMainWindow):
         steps = BACKUP_STEPS + count
 
         def backup_step(_label: str, step: int, _total: int) -> None:
-            self._progress("Haciendo un backup de la pedalera…", step, steps)
+            self._progress(tr("Haciendo un backup de la pedalera…"), step, steps)
 
         def write_step(slot: str, step: int, _total: int) -> None:
-            self._progress(f"Escribiendo preset {slot} ({step + 1} de {count})…",
+            self._progress(tr(
+                "Escribiendo preset {slot} ({current} de {count})…",
+                slot=slot,
+                current=step + 1,
+                count=count,
+            ),
                            BACKUP_STEPS + step, steps)
 
         def work() -> bulk_edit.Applied:
@@ -555,15 +608,23 @@ class MainWindow(QMainWindow):
 
         def done(result: bulk_edit.Applied) -> None:
             self.presets.end_work()
-            saved = f" Backup previo: {auto_backup.short(result.backup)}" if result.backup else ""
+            saved = tr(
+                " Backup previo: {backup}",
+                backup=auto_backup.short(result.backup),
+            ) if result.backup else ""
             self.statusBar().showMessage(
-                f"Preset «{moving.name}» movido a la posición {target:03d}.{saved}", 8000)
+                tr(
+                    "Preset «{name}» movido a la posición {target:03d}.{saved}",
+                    name=moving.name,
+                    target=target,
+                    saved=saved,
+                ), 8000)
             failed = [f"{slot:03d}: {why}" for slot, why in result.skipped
                       if why != "sin cambios"]
             if failed:
-                self._error("No se reescribieron todos los presets:\n" + "\n".join(failed))
+                self._error(tr("No se reescribieron todos los presets:\n") + "\n".join(failed))
 
-        text = f"Moviendo «{moving.name}» a la posición {target:03d}…"
+        text = tr("Moviendo «{name}» a la posición {target:03d}…", name=moving.name, target=target)
         self.presets.start_work(text)
         self.statusBar().showMessage(text)
         self.runner.run(work, done, failed)
@@ -575,27 +636,34 @@ class MainWindow(QMainWindow):
         preset = self.state.presets.get(slot or 0)
         if preset is None:
             return
-        path, _ = QFileDialog.getSaveFileName(self, "Exportar preset", f"{preset.name}.mo",
-                                              "Preset GE150 (*.mo)")
+        path, _ = QFileDialog.getSaveFileName(self, tr("Exportar preset"), f"{preset.name}.mo",
+                                              tr("Preset GE150 (*.mo)"))
         if path:
             mo_json.save(path, preset)
-            self.statusBar().showMessage(f"Exportado {path}", 4000)
+            self.statusBar().showMessage(tr("Exportado {path}", path=path), 4000)
 
     def export_all(self) -> None:
-        directory = QFileDialog.getExistingDirectory(self, "Carpeta de destino")
+        directory = QFileDialog.getExistingDirectory(self, tr("Carpeta de destino"))
         if not directory:
             return
         for slot, preset in sorted(self.state.presets.items()):
             clean = "".join(c if c.isalnum() or c in " -_" else "_" for c in preset.name).strip()
             mo_json.save(Path(directory) / f"{slot:03d} {clean or 'unnamed'}.mo", preset)
-        self.statusBar().showMessage(f"{len(self.state.presets)} presets exportados", 4000)
+        self.statusBar().showMessage(tr(
+            "{count} presets exportados",
+            count=len(self.state.presets),
+        ), 4000)
 
     def import_mo(self, slot: int | None = None) -> None:
         slot = slot or self.presets.selected_slot()
         base = self.state.presets.get(slot or 0)
         if base is None:
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Importar preset", "", "Preset GE150 (*.mo)")
+        path, _ = QFileDialog.getOpenFileName(self, tr(
+            "Importar preset",
+        ), "", tr(
+            "Preset GE150 (*.mo)",
+        ))
         if not path:
             return
         try:
@@ -603,18 +671,23 @@ class MainWindow(QMainWindow):
         except (OSError, mo_json.MoError) as exc:
             self._error(str(exc))
             return
-        if self._confirm(f"¿Sobrescribir el preset {base.slot} ({base.name}) con «{preset.name}»?"):
+        if self._confirm(tr(
+            "¿Sobrescribir el preset {slot} ({old_name}) con «{new_name}»?",
+            slot=base.slot,
+            old_name=base.name,
+            new_name=preset.name,
+        )):
             self.runner.run(lambda: self.editor.copy_preset_data(preset), None, self._error)
 
     def save_snapshot(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(self, "Guardar snapshot", "ge150_snapshot.json",
+        path, _ = QFileDialog.getSaveFileName(self, tr("Guardar snapshot"), "ge150_snapshot.json",
                                               "JSON (*.json)")
         if not path:
             return
 
         def done(data: object) -> None:
             Path(path).write_text(json.dumps(data, indent=1) + "\n")
-            self.statusBar().showMessage(f"Snapshot guardado en {path}", 4000)
+            self.statusBar().showMessage(tr("Snapshot guardado en {path}", path=path), 4000)
 
         self.runner.run(lambda: reader.snapshot(self.session), done, self._error)
 
@@ -623,8 +696,8 @@ class MainWindow(QMainWindow):
         self.bridge.progress.emit(label, step, total)
 
     def backup(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(self, "Backup completo", "GE150.mbf",
-                                              "Backup GE150 (*.mbf)")
+        path, _ = QFileDialog.getSaveFileName(self, tr("Backup completo"), "GE150.mbf",
+                                              tr("Backup GE150 (*.mbf)"))
         if not path:
             return
 
@@ -632,7 +705,11 @@ class MainWindow(QMainWindow):
             assert isinstance(result, mbf.Backup)
             mbf.save(path, result)
             self.statusBar().showMessage(
-                f"Backup guardado: {len(result.presets)} presets, {len(result.irs)} IR", 6000)
+                tr(
+                    "Backup guardado: {presets} presets, {irs} IR",
+                    presets=len(result.presets),
+                    irs=len(result.irs),
+                ), 6000)
 
         self.runner.run(lambda: backup_service.create_backup(self.editor, self._progress),
                         done, self._error)
@@ -648,7 +725,11 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(directory)))
 
     def restore(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Restaurar backup", "", "Backup GE150 (*.mbf)")
+        path, _ = QFileDialog.getOpenFileName(self, tr(
+            "Restaurar backup",
+        ), "", tr(
+            "Backup GE150 (*.mbf)",
+        ))
         if not path:
             return
         try:
@@ -656,34 +737,40 @@ class MainWindow(QMainWindow):
         except (OSError, mbf.MbfError) as exc:
             self._error(str(exc))
             return
-        if not self._confirm(f"Se SOBRESCRIBIRÁN los 200 presets y {len(data.irs)} IR de la "
-                             "pedalera con el backup. ¿Continuar?"):
+        if not self._confirm(tr(
+            "Se SOBRESCRIBIRÁN los 200 presets y {irs} IR de la "
+            "pedalera con el backup. ¿Continuar?",
+            irs=len(data.irs),
+        )):
             return
         self.runner.run(lambda: backup_service.restore_backup(self.editor, data, self._progress),
                         lambda _: self.start_sync(), self._error)
 
     def factory_reset(self) -> None:
         """DESTRUCTIVE, with two confirmations and an optional backup first."""
-        box = QMessageBox(QMessageBox.Icon.Warning, "Restaurar valores de fábrica",
-                          "Se BORRARÁN los 200 presets, las IR y capturas NR de usuario y los "
+        box = QMessageBox(QMessageBox.Icon.Warning, tr("Restaurar valores de fábrica"),
+                          tr("Se BORRARÁN los 200 presets, las IR y capturas NR de usuario y los "
                           "ajustes de sistema: la pedalera vuelve a como salió de fábrica.\n\n"
-                          "Se recomienda hacer antes un backup completo.", parent=self)
-        with_backup = box.addButton("Hacer backup y continuar…",
+                          "Se recomienda hacer antes un backup completo."), parent=self)
+        with_backup = box.addButton(tr("Hacer backup y continuar…"),
                                     QMessageBox.ButtonRole.AcceptRole)
-        without = box.addButton("Continuar sin backup", QMessageBox.ButtonRole.DestructiveRole)
+        without = box.addButton(tr("Continuar sin backup"), QMessageBox.ButtonRole.DestructiveRole)
         box.addButton(QMessageBox.StandardButton.Cancel)
         box.exec()
         if box.clickedButton() not in (with_backup, without):
             return
         path = ""
         if box.clickedButton() is with_backup:
-            path, _ = QFileDialog.getSaveFileName(self, "Backup antes del reset", "GE150.mbf",
-                                                  "Backup GE150 (*.mbf)")
+            path, _ = QFileDialog.getSaveFileName(self, tr("Backup antes del reset"), "GE150.mbf",
+                                                  tr("Backup GE150 (*.mbf)"))
             if not path:
                 return
-        phrase = "BORRAR TODO"
-        text, ok = QInputDialog.getText(self, "Confirmar reset de fábrica",
-                                        f"Escribe «{phrase}» para restaurar la pedalera:")
+        phrase = tr("BORRAR TODO")
+        text, ok = QInputDialog.getText(self, tr("Confirmar reset de fábrica"),
+                                        tr(
+                                            "Escribe «{phrase}» para restaurar la pedalera:",
+                                            phrase=phrase,
+                                        ))
         if not ok or text.strip() != phrase:
             return
 
@@ -693,7 +780,7 @@ class MainWindow(QMainWindow):
             backup_service.factory_reset(self.editor)
 
         self.central.setEnabled(False)
-        self.statusBar().showMessage("Restaurando valores de fábrica…")
+        self.statusBar().showMessage(tr("Restaurando valores de fábrica…"))
         self.runner.run(task, self._synced, self._error)
 
     def _on_progress(self, label: str, step: int, total: int) -> None:

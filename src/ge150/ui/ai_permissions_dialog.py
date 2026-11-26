@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.services import ai_permissions
 from ge150.ui.theme import ACCENT, BORDER, MUTED, RAISED
 
@@ -81,18 +82,18 @@ class ToggleSwitch(QAbstractButton):
 class AiPermissionsDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Permisos del asistente")
+        self.setWindowTitle(tr("Permisos del asistente"))
         self.setMinimumWidth(500)
         self.switches: dict[str, ToggleSwitch] = {}
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 18, 20, 16)
         layout.setSpacing(6)
-        title = QLabel("Permisos del asistente")
+        title = QLabel(tr("Permisos del asistente"))
         title.setObjectName("cardTitle")
         layout.addWidget(title)
-        intro = QLabel("Qué puede hacer la IA con tu pedalera. Leer presets, el catálogo y "
+        intro = QLabel(tr("Qué puede hacer la IA con tu pedalera. Leer presets, el catálogo y "
                        "tu guitarra siempre está permitido. Los cambios valen desde el "
-                       "próximo pedido.")
+                       "próximo pedido."))
         intro.setObjectName("note")
         intro.setWordWrap(True)
         layout.addWidget(intro)
@@ -101,18 +102,18 @@ class AiPermissionsDialog(QDialog):
         for permission in ai_permissions.PERMISSIONS:
             if permission.group != group:
                 group = permission.group
-                header = QLabel(group.upper())
+                header = QLabel(tr(group).upper())
                 header.setObjectName("permGroup")
                 layout.addSpacing(8)
                 layout.addWidget(header)
             layout.addWidget(self._row(permission, permissions.allows(permission.key)))
         layout.addSpacing(10)
         buttons = QHBoxLayout()
-        allow_all = QPushButton("Permitir todo")
+        allow_all = QPushButton(tr("Permitir todo"))
         allow_all.setObjectName("linkButton")
         allow_all.setCursor(Qt.CursorShape.PointingHandCursor)
         allow_all.clicked.connect(self.allow_all)
-        close = QPushButton("Cerrar")
+        close = QPushButton(tr("Cerrar"))
         close.setDefault(True)
         close.clicked.connect(self.accept)
         buttons.addWidget(allow_all)
@@ -127,9 +128,9 @@ class AiPermissionsDialog(QDialog):
         line.setContentsMargins(12, 8, 12, 8)
         text = QVBoxLayout()
         text.setSpacing(1)
-        label = QLabel(permission.label)
+        label = QLabel(tr(permission.label))
         label.setObjectName("permLabel")
-        detail = QLabel(permission.detail)
+        detail = QLabel(tr(permission.detail))
         detail.setObjectName("note")
         detail.setWordWrap(True)
         text.addWidget(label)
@@ -137,8 +138,8 @@ class AiPermissionsDialog(QDialog):
         line.addLayout(text, 1)
         switch = ToggleSwitch()
         switch.setChecked(allowed)
-        switch.setAccessibleName(permission.label)
-        switch.setToolTip("Permitido" if allowed else "Desactivado")
+        switch.setAccessibleName(tr(permission.label))
+        switch.setToolTip(tr("Permitido") if allowed else tr("Desactivado"))
         switch.toggled.connect(lambda on, s=switch: self._toggled(s, on))
         line.addWidget(switch, 0, Qt.AlignmentFlag.AlignVCenter)
         self.switches[permission.key] = switch
@@ -149,7 +150,7 @@ class AiPermissionsDialog(QDialog):
             frozenset(k for k, s in self.switches.items() if not s.isChecked()))
 
     def _toggled(self, switch: ToggleSwitch, on: bool) -> None:
-        switch.setToolTip("Permitido" if on else "Desactivado")
+        switch.setToolTip(tr("Permitido") if on else tr("Desactivado"))
         self._save()
 
     def _save(self) -> None:

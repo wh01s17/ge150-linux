@@ -44,7 +44,7 @@ ge150-mcp = "ge150.mcp_server.server:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-ge150 = ["data/*.json", "data/*.svg"]
+ge150 = ["data/*.json", "data/*.svg", "data/translations/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

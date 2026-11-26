@@ -24,6 +24,8 @@ from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 
+from ge150.i18n import tr
+
 APP_ID = "ge150"
 NAME = "GE150 Editor"
 
@@ -154,11 +156,12 @@ class Plan:
         env = self.environment
         where = []
         if self.menu is not None:
-            where.append(f"el lanzador de aplicaciones de {env.name} (rofi, wofi, fuzzel…)"
-                         if env.tiling else f"el menú de aplicaciones de {env.name}")
+            menu = ("el lanzador de aplicaciones de {desktop} (rofi, wofi, fuzzel…)"
+                    if env.tiling else "el menú de aplicaciones de {desktop}")
+            where.append(tr(menu, desktop=env.name))
         if self.desktop is not None:
-            where.append("el escritorio")
-        return " y en ".join(where)
+            where.append(tr("el escritorio"))
+        return tr(" y en ").join(where)
 
 
 def plan(env: dict[str, str] | None = None) -> Plan:

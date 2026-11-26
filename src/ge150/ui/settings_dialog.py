@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.model import settings
 from ge150.model.settings import RhythmValues, SystemValues
 from ge150.services.editor import Editor
@@ -44,7 +45,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.editor = editor
         self._loading = False
-        self.setWindowTitle("Sistema y caja de ritmos")
+        self.setWindowTitle(tr("Sistema y caja de ritmos"))
         layout = QVBoxLayout(self)
 
         self.system_box = QGroupBox("SYSTEM")
@@ -56,26 +57,26 @@ class SettingsDialog(QDialog):
         self.otg_level = _combo(settings.LEVELS)
         form.addRow("INPUT LEVEL", self.input_level)
         form.addRow("SCREEN", self.screen)
-        form.addRow("CAB SIM THRU izquierda", self.cab_left)
-        form.addRow("CAB SIM THRU derecha", self.cab_right)
+        form.addRow(tr("CAB SIM THRU izquierda"), self.cab_left)
+        form.addRow(tr("CAB SIM THRU derecha"), self.cab_right)
         form.addRow("OTG LEVEL", self.otg_level)
         layout.addWidget(self.system_box)
 
         self.rhythm_box = QGroupBox("RHYTHM")
         form = QFormLayout(self.rhythm_box)
-        self.rhythm_on = QCheckBox("Encendida")
+        self.rhythm_on = QCheckBox(tr("Encendida"))
         self.mode = _combo(settings.RHYTHM_MODES)
         self.style = _spin(1, settings.STYLE_COUNT[0])
         self.bpm = _spin(*settings.BPM_RANGE, " BPM")
         self.volume = _spin(*settings.VOLUME_RANGE)
-        form.addRow("Estado", self.rhythm_on)
+        form.addRow(tr("Estado"), self.rhythm_on)
         form.addRow("MODE", self.mode)
         form.addRow("STYLE", self.style)
         form.addRow("BPM", self.bpm)
         form.addRow("VOL", self.volume)
         layout.addWidget(self.rhythm_box)
 
-        info = QLabel("Los cambios se envían al instante y la pedalera los conserva.")
+        info = QLabel(tr("Los cambios se envían al instante y la pedalera los conserva."))
         info.setWordWrap(True)
         layout.addWidget(info)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)

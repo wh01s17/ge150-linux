@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.protocol import messages as msg
 from ge150.services.editor import Editor
 from ge150.services.tone3000 import Pending, Tone, ToneModel, parse_callback
@@ -99,18 +100,18 @@ class Tone3000Page(QWidget):
         brand.setObjectName("moduleTitle")
         self.account = QLabel()
         self.account.setObjectName("basedOn")
-        self.home_button = QPushButton("Catálogo")
-        self.home_button.setToolTip("Volver al inicio del catálogo")
+        self.home_button = QPushButton(tr("Catálogo"))
+        self.home_button.setToolTip(tr("Volver al inicio del catálogo"))
         self.home_button.clicked.connect(self.start_catalogue)
-        self.key_button = QPushButton("Clave…")
+        self.key_button = QPushButton(tr("Clave…"))
         self.key_button.clicked.connect(self._change_key)
-        self.connect_button = QPushButton("Conectar cuenta")
+        self.connect_button = QPushButton(tr("Conectar cuenta"))
         self.connect_button.setObjectName("saveButton")
-        self.connect_button.setToolTip("Conecta el editor (y el asistente de IA) a tu cuenta de "
+        self.connect_button.setToolTip(tr("Conecta el editor (y el asistente de IA) a tu cuenta de "
                                        "TONE3000. Estar dentro del sitio no basta: el editor "
-                                       "necesita tu permiso para buscar y descargar IR.")
+                                       "necesita tu permiso para buscar y descargar IR."))
         self.connect_button.clicked.connect(self.connect_account)
-        self.logout_button = QPushButton("Cerrar sesión")
+        self.logout_button = QPushButton(tr("Cerrar sesión"))
         self.logout_button.clicked.connect(self._logout)
         top.addWidget(brand)
         top.addSpacing(10)
@@ -136,10 +137,10 @@ class Tone3000Page(QWidget):
         form = QFormLayout()
         self.file_combo = QComboBox()
         self.slot_combo = QComboBox()
-        form.addRow("Archivo", self.file_combo)
-        form.addRow("Ranura", self.slot_combo)
+        form.addRow(tr("Archivo"), self.file_combo)
+        form.addRow(tr("Ranura"), self.slot_combo)
         side_layout.addLayout(form)
-        self.add_button = QPushButton("Agregar a la pedalera")
+        self.add_button = QPushButton(tr("Agregar a la pedalera"))
         self.add_button.setObjectName("saveButton")
         self.add_button.clicked.connect(self._add)
         side_layout.addWidget(self.add_button)
@@ -153,17 +154,17 @@ class Tone3000Page(QWidget):
         splitter.setStretchFactor(1, 2)
         splitter.setSizes([820, 420])
         layout.addWidget(splitter, 1)
-        self.note = QLabel(HINT)
+        self.note = QLabel(tr(HINT))
         self.note.setObjectName("note")
         self.note.setWordWrap(True)
         layout.addWidget(self.note)
         self._refresh_account()
 
     def _status(self, text: str) -> None:
-        self.note.setText(text or HINT)
+        self.note.setText(text or tr(HINT))
 
     def _failed(self, message: str) -> None:
-        QMessageBox.warning(self, "Error", message)
+        QMessageBox.warning(self, tr("Error"), message)
 
     # --- catalogue ------------------------------------------------------------------
 
@@ -175,8 +176,8 @@ class Tone3000Page(QWidget):
 
     def start_catalogue(self) -> None:
         if not self.client.creds.client_id:
-            self._show_message("Para ver el catálogo falta la clave publicable de tu cuenta "
-                               "de TONE3000 (botón <b>Clave…</b>).")
+            self._show_message(tr("Para ver el catálogo falta la clave publicable de tu cuenta "
+                               "de TONE3000 (botón <b>Clave…</b>)."))
             return
         self.pending = self.client.begin("select_tone")
         if self.view is None:
@@ -184,8 +185,8 @@ class Tone3000Page(QWidget):
             if self.view is not None:
                 self.stack.addWidget(self.view)
         if self.view is None:  # no Qt WebEngine: the system browser and the loopback server
-            self._show_message("Este sistema no tiene navegador integrado (Qt WebEngine): "
-                               "el catálogo se abrió en tu navegador.")
+            self._show_message(tr("Este sistema no tiene navegador integrado (Qt WebEngine): "
+                               "el catálogo se abrió en tu navegador."))
             self.loader.background(self._select_outside, slot=-4)
             return
         self.stack.setCurrentWidget(self.view)
@@ -201,7 +202,7 @@ class Tone3000Page(QWidget):
             self.view = _web_view(self._callbacks, self.client.is_callback)
             if self.view is not None:
                 self.stack.addWidget(self.view)
-        self.note.setText("Conectando con tu cuenta de TONE3000…")
+        self.note.setText(tr("Conectando con tu cuenta de TONE3000…"))
         if self.view is None:
             self.loader.background(self.client.login, slot=-4)
             return
@@ -232,7 +233,7 @@ class Tone3000Page(QWidget):
             tone_id = int(callback.tone_id)
             return self.client.tone(tone_id), self.client.models(tone_id)
 
-        self.note.setText("Leyendo la IR elegida…")
+        self.note.setText(tr("Leyendo la IR elegida…"))
         self.loader.background(work, slot=-4)
         self.start_catalogue()  # keep browsing; TONE3000 remembers the sign-in
 
@@ -242,13 +243,13 @@ class Tone3000Page(QWidget):
             self._refresh_account()
         if slot != -4:
             return
-        self.note.setText(HINT)
+        self.note.setText(tr(HINT))
         self._refresh_account()
         if not error and self.client.creds.signed_in and not self.user_name:
             self.loader.background(self.client.user, slot=-5)
         if not error and result is None and self.client.creds.signed_in:
-            self.note.setText("Cuenta conectada: ya puedes buscar IR, también desde el "
-                              "asistente de IA.")
+            self.note.setText(tr("Cuenta conectada: ya puedes buscar IR, también desde el "
+                              "asistente de IA."))
         if error:
             QMessageBox.warning(self, "TONE3000", error)
         elif isinstance(result, tuple):
@@ -289,21 +290,24 @@ class Tone3000Page(QWidget):
 
     def _stored(self, slot: int) -> None:
         self._refresh_slots()
-        self.note.setText(f"Lista en la ranura IR {slot + 1}: elige CAB {27 + slot} en la "
-                          "pestaña Efectos para escucharla.")
+        self.note.setText(tr(
+            "Lista en la ranura IR {slot}: elige CAB {cab} en la pestaña Efectos para escucharla.",
+            slot=slot + 1, cab=27 + slot,
+        ))
 
     # --- account --------------------------------------------------------------------
 
     def _refresh_account(self) -> None:
         creds = self.client.creds
         if not creds.client_id:
-            text = "Falta la clave publicable."
+            text = tr("Falta la clave publicable.")
         elif creds.signed_in:
-            who = f" como <b>{html.escape(self.user_name)}</b>" if self.user_name else ""
-            text = f"Sesión iniciada{who}."
+            who = (tr(" como <b>{name}</b>", name=html.escape(self.user_name))
+                   if self.user_name else "")
+            text = tr("Sesión iniciada{who}.", who=who)
         else:
-            text = ("Cuenta sin conectar: aprieta <b>Conectar cuenta</b> (o elige una IR con "
-                    "«Select»).")
+            text = (tr("Cuenta sin conectar: aprieta <b>Conectar cuenta</b> (o elige una IR con "
+                    "«Select»)."))
         self.account.setText(text)
         self.logout_button.setVisible(creds.signed_in)
         self.connect_button.setVisible(not creds.signed_in)

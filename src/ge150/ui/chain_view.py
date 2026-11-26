@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.model.gear import MODULE_TAGS
 from ge150.model.preset import MODULES
 from ge150.services.editor import Editor
@@ -88,7 +89,7 @@ class LedButton(QPushButton):
         self.setCheckable(True)
         self.setFixedSize(26, 26)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("Encender / apagar el efecto")
+        self.setToolTip(tr("Encender / apagar el efecto"))
         self._glow = 0.0
         self._anim = QPropertyAnimation(self, b"glow", self)
         self._anim.setDuration(220)
@@ -151,17 +152,20 @@ class TapLed(QWidget):
         self._fade.setStartValue(1.0)
         self._fade.setEndValue(0.0)
         self._fade.setEasingCurve(QEasingCurve.Type.OutQuad)
-        self.setToolTip("TAP: el delay está apagado")
+        self.setToolTip(tr("TAP: el delay está apagado"))
 
     def set_period(self, ms: int) -> None:
         if ms == self.period:
             return
         self.period = ms
         if ms:
-            self.setToolTip(f"TAP: parpadea al tiempo del delay ({ms} ms ≈ "
-                            f"{60000 / ms:.0f} BPM)")
+            self.setToolTip(tr(
+                "TAP: parpadea al tiempo del delay ({ms} ms ≈ {bpm:.0f} BPM)",
+                ms=ms,
+                bpm=60000 / ms,
+            ))
         else:
-            self.setToolTip("TAP: el delay está apagado")
+            self.setToolTip(tr("TAP: el delay está apagado"))
         self._restart()
         self.update()
 
@@ -222,7 +226,7 @@ class ModuleTile(QFrame):
         self.index = index
         self.setObjectName("moduleTile")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip(f"{MODULES[index].name}: clic para editar")
+        self.setToolTip(tr("{name}: clic para editar", name=MODULES[index].name))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 6, 6, 6)
         layout.setSpacing(3)
@@ -403,7 +407,7 @@ class ChainView(QFrame):
         outer.setSpacing(6)
 
         head = QHBoxLayout()
-        title = QLabel("Cadena de efectos")
+        title = QLabel(tr("Cadena de efectos"))
         title.setObjectName("cardTitle")
         self.count = QLabel()
         self.count.setObjectName("countBadge")
@@ -416,7 +420,7 @@ class ChainView(QFrame):
         row.setSpacing(0)
         # wires[i] goes into tile i, wires[i + 1] comes out of it.
         self.wires = [_Wire() for _ in range(len(MODULES) + 1)]
-        row.addWidget(_Jack("guitar", "IN", "Entrada: tu guitarra"))
+        row.addWidget(_Jack("guitar", "IN", tr("Entrada: tu guitarra")))
         self.tiles = [ModuleTile(i) for i in range(len(MODULES))]
         for i, tile in enumerate(self.tiles):
             row.addWidget(self.wires[i])
@@ -425,7 +429,7 @@ class ChainView(QFrame):
             tile.hovered.connect(self._hovered)
             row.addWidget(tile, 1)
         row.addWidget(self.wires[-1])
-        row.addWidget(_Jack("speaker", "OUT", "Salida: amplificador, interfaz o audífonos"))
+        row.addWidget(_Jack("speaker", "OUT", tr("Salida: amplificador, interfaz o audífonos")))
         # The expression pedal is not in the signal path: apart, past a divider (it sits on
         # the right of the real pedal too). The tile it moves wears an «EXP» tag.
         row.addSpacing(10)
@@ -469,7 +473,10 @@ class ChainView(QFrame):
         for tile in self.tiles:
             moved = bool(name) and settings.module == tile.index
             tile.exp_tag.setVisible(moved)
-            tile.exp_tag.setToolTip(f"El pedal de expresión mueve su {name}" if moved else "")
+            tile.exp_tag.setToolTip(tr(
+                "El pedal de expresión mueve su {name}",
+                name=name,
+            ) if moved else "")
         self._refresh_tap()
         self._count()
 
@@ -490,7 +497,7 @@ class ChainView(QFrame):
 
     def _count(self) -> None:
         on = sum(bool(t.power.isChecked()) for t in self.tiles)
-        self.count.setText(f"{on} de {len(self.tiles)} encendidos")
+        self.count.setText(tr("{on} de {total} encendidos", on=on, total=len(self.tiles)))
 
     def _exp_hovered(self, on: bool) -> None:
         """Hovering the EXP tile lights the effect it moves, as if it were hovered."""

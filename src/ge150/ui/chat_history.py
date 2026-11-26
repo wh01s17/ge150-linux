@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.services import tone_agent
 from ge150.services.chat_history import ChatEntry, ChatStore
 from ge150.ui.icons import icon
@@ -43,9 +44,9 @@ def when(stamp: float) -> str:
     yesterday = time.strftime("%Y%m%d", time.localtime(time.time() - 86400))
     clock = time.strftime("%H:%M", time.localtime(stamp))
     if day == today:
-        return f"hoy {clock}"
+        return tr("hoy {clock}", clock=clock)
     if day == yesterday:
-        return f"ayer {clock}"
+        return tr("ayer {clock}", clock=clock)
     return time.strftime("%d-%m-%Y %H:%M", time.localtime(stamp))
 
 
@@ -75,26 +76,26 @@ class _Entry(QFrame):
         layout.addWidget(badge, 0, Qt.AlignmentFlag.AlignTop)
         texts = QVBoxLayout()
         texts.setSpacing(1)
-        self.title = QLabel(entry.title or UNTITLED)
+        self.title = QLabel(entry.title or tr(UNTITLED))
         self.title.setObjectName("historyTitle")
         self.title.setWordWrap(True)
         self.editor = QLineEdit(entry.title)
         self.editor.setObjectName("historyRename")
         self.editor.hide()
         self.editor.installEventFilter(self)
-        meta = f"{agent if enabled else agent + ' (no instalado)'} · {when(entry.updated)}"
+        meta = f"{agent if enabled else agent + tr(' (no instalado)')} · {when(entry.updated)}"
         if entry.slot:
             meta += f" · preset {entry.slot:03d} {entry.preset}".rstrip()
-        self.meta = QLabel(meta + (" · <b>Actual</b>" if current else ""))
+        self.meta = QLabel(meta + (tr(" · <b>Actual</b>") if current else ""))
         self.meta.setWordWrap(True)
         self.meta.setObjectName("historyMeta")
         texts.addWidget(self.title)
         texts.addWidget(self.editor)
         texts.addWidget(self.meta)
         layout.addLayout(texts, 1)
-        self.rename_button = _icon_button("pencil", "Renombrar")
+        self.rename_button = _icon_button("pencil", tr("Renombrar"))
         self.rename_button.clicked.connect(self._start_rename)
-        self.delete_button = _icon_button("trash", "Eliminar")
+        self.delete_button = _icon_button("trash", tr("Eliminar"))
         self.delete_button.clicked.connect(self._delete)
         self._confirming = False
         self._reset = QTimer(self, singleShot=True, interval=3000)
@@ -148,13 +149,13 @@ class _Entry(QFrame):
             return
         self._confirming = True
         self.delete_button.setIcon(icon("check", "#ff8a80", 15))
-        self.delete_button.setToolTip("Confirmar borrado")
+        self.delete_button.setToolTip(tr("Confirmar borrado"))
         self._reset.start()
 
     def _cancel_delete(self) -> None:
         self._confirming = False
         self.delete_button.setIcon(icon("trash", MUTED, 15))
-        self.delete_button.setToolTip("Eliminar")
+        self.delete_button.setToolTip(tr("Eliminar"))
 
 
 class ChatHistory(QWidget):
@@ -169,16 +170,16 @@ class ChatHistory(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         head = QHBoxLayout()
-        back = _icon_button("arrow-left", "Volver a la conversación")
+        back = _icon_button("arrow-left", tr("Volver a la conversación"))
         back.clicked.connect(self.closed)
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Buscar conversaciones")
+        self.search.setPlaceholderText(tr("Buscar conversaciones"))
         self.search.setClearButtonEnabled(True)
         self.search.textChanged.connect(lambda _: self.reload())
         head.addWidget(back)
         head.addWidget(self.search, 1)
         layout.addLayout(head)
-        title = QLabel("Historial de conversaciones")
+        title = QLabel(tr("Historial de conversaciones"))
         title.setObjectName("sectionTitle")
         layout.addWidget(title)
         self.scroll = QScrollArea()
@@ -190,15 +191,15 @@ class ChatHistory(QWidget):
     def reload(self) -> None:
         needle = self.search.text().strip().lower()
         entries = [e for e in self.store.entries(self.scope)
-                   if not needle or needle in (e.title or UNTITLED).lower()]
+                   if not needle or needle in (e.title or tr(UNTITLED)).lower()]
         body = QWidget()
         body.setObjectName("historyBody")
         column = QVBoxLayout(body)
         column.setContentsMargins(0, 4, 0, 4)
         column.setSpacing(2)
         if not entries:
-            empty = QLabel("No hay conversaciones que coincidan." if needle else
-                           "Todavía no hay conversaciones guardadas.")
+            empty = QLabel(tr("No hay conversaciones que coincidan.") if needle else
+                           tr("Todavía no hay conversaciones guardadas."))
             empty.setObjectName("emptyState")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             column.addWidget(empty)

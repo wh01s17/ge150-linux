@@ -12,9 +12,11 @@ QtWidgets = pytest.importorskip("PySide6.QtWidgets")
 from PySide6.QtCore import QCoreApplication  # noqa: E402
 from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
+from ge150.i18n import set_language  # noqa: E402
 from ge150.protocol.session import DeviceSession  # noqa: E402
 from ge150.services.editor import Editor  # noqa: E402
 from ge150.sim.sim_transport import SimTransport  # noqa: E402
+from ge150.ui.ai_permissions_dialog import AiPermissionsDialog  # noqa: E402
 from ge150.ui.main_window import MainWindow  # noqa: E402
 
 
@@ -57,6 +59,33 @@ def test_sync_populates_widgets(window: MainWindow) -> None:
     assert "PRESET 001" in window.header.text()
     assert window.chain.tiles[0].model.text().startswith("02:")
     assert window.module_editor.model.count() == 8
+
+
+def test_english_catalog_translates_editor_widgets(request: pytest.FixtureRequest) -> None:
+    set_language("en")
+    request.addfinalizer(lambda: set_language("es"))
+    window: MainWindow = request.getfixturevalue("window")
+
+    assert window.tabs.tabText(0) == "Effects"
+    assert window.save_button.text() == "Save"
+    assert window.presets.search.placeholderText() == "Search presets…"
+    assert window.menuBar().actions()[0].text() == "&File"
+    chat = window.ai_panel.body
+    assert window.ai_panel.windowTitle() == "AI assistant"
+    assert chat.prompt.placeholderText().startswith("Describe the sound")
+    assert chat.history.search.placeholderText() == "Search conversations"
+    assert window.assistant.ticks_chip.text() == "No presets checked"
+    assert window.assistant.review.tree.headerItem().text(1) == "Before"
+    assert "No pending changes" in window.assistant.review.empty.text()
+    dialog = AiPermissionsDialog(window)
+    assert dialog.windowTitle() == "Assistant permissions"
+    assert dialog.switches["save"].accessibleName() == "Save presets"
+    assert window.presets.list.count() == 200
+    assert "PRESET 001" in window.header.text()
+    window.chain.select(3)
+    assert window.module_editor.model.sections() == [
+        "Pedal models", "Your IRs · user slots (TONE3000 and others)",
+    ]
 
 
 def test_editing_a_parameter_reaches_the_pedal(window: MainWindow) -> None:

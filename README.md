@@ -184,7 +184,12 @@ datos en tu carpeta personal: actualizar no los toca.
 ```bash
 ge150            # con la pedalera conectada
 ge150 --sim      # con el simulador, sin hardware
+ge150 --language en   # menús y editor de presets en inglés
 ```
+
+El inglés cubre el editor principal, la cadena de efectos, el pedal de expresión, los ajustes,
+las IR de usuario, las ventanas de información, la interfaz del asistente y los controles y
+diálogos de TONE3000. El catálogo web y las descripciones proceden de TONE3000.
 
 - En pantallas grandes (4K, 1440p) la interfaz se agranda sola si el sistema no la escala; para fijar otro tamaño:
   *Ver → Tamaño de la interfaz* (se aplica al reiniciar). La variable `QT_SCALE_FACTOR`, si la defines, tiene
@@ -352,6 +357,13 @@ descargadas quedan en `~/.cache/ge150/tone3000/` y no se versionan.
 .venv/bin/mypy
 python3 -I tools/build_catalog.py       # regenera src/ge150/data/effects.json desde reference/
 ```
+
+La interfaz usa el español por defecto. Para añadir otro idioma, crea un catálogo JSON
+en `src/ge150/data/translations/` con el código del idioma como nombre de archivo,
+por ejemplo `fr.json`. Las claves son los textos originales marcados con `tr()`.
+Mantén los nombres de los parámetros como `{slot}` en los mensajes traducidos.
+Las entradas que falten se muestran en español. Prueba el catálogo con
+`ge150 --sim --language fr`.
 
 Regla del proyecto: ningún archivo de código supera 1000 líneas (ver `plan.md` §0).
 El material del fabricante (`reference/`) no se versiona.
