@@ -13,6 +13,7 @@ import threading
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton, QWidget
 
+from ge150.i18n import tr
 from ge150.services import tone_ai
 from ge150.ui.ai_host import AiHost
 
@@ -35,17 +36,17 @@ class SoundCompare(QFrame):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(6)
-        label = QLabel("Comparar")
+        label = QLabel(tr("Comparar"))
         label.setObjectName("note")
-        self.original = QPushButton("Sonido original")
-        self.suggested = QPushButton("Sonido sugerido")
+        self.original = QPushButton(tr("Sonido original"))
+        self.suggested = QPushButton(tr("Sonido sugerido"))
         self.group = QButtonGroup(self)
         for which, button in ((ORIGINAL, self.original), (SUGGESTED, self.suggested)):
             button.setObjectName("abButton")
             button.setCheckable(True)
             self.group.addButton(button, which)
-        self.original.setToolTip("El preset tal como está guardado en la pedalera")
-        self.suggested.setToolTip("Lo que propuso la IA")
+        self.original.setToolTip(tr("El preset tal como está guardado en la pedalera"))
+        self.suggested.setToolTip(tr("Lo que propuso la IA"))
         self.group.idClicked.connect(self.switch)
         layout.addWidget(label)
         layout.addWidget(self.original, 1)
@@ -102,4 +103,4 @@ class SoundCompare(QFrame):
         if button is not None:
             button.setChecked(True)
         if error:
-            self.setToolTip(f"No se pudo cambiar: {error}")
+            self.setToolTip(tr("No se pudo cambiar: {error}", error=error))

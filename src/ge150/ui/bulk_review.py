@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.model.preset import Preset
 from ge150.services import auto_backup, bulk_edit
 from ge150.services.bulk_edit import PresetEdit
@@ -55,7 +56,7 @@ class BulkReview(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         head = QHBoxLayout()
-        title = QLabel("Cambios pendientes")
+        title = QLabel(tr("Cambios pendientes"))
         title.setObjectName("cardTitle")
         self.badge = QLabel()
         self.badge.setObjectName("countBadge")
@@ -76,8 +77,8 @@ class BulkReview(QWidget):
         self.playing_label.setWordWrap(True)
         bar.addWidget(self.playing_label, 1)
         self.sides = QButtonGroup(self)
-        for i, (text, tip) in enumerate((("Antes", "Como está guardado en la pedalera"),
-                                         ("Después", "Con los cambios propuestos"))):
+        for i, (text, tip) in enumerate(((tr("Antes"), tr("Como está guardado en la pedalera")),
+                                         (tr("Después"), tr("Con los cambios propuestos")))):
             button = QPushButton(text)
             button.setObjectName("segment")
             button.setCheckable(True)
@@ -91,7 +92,7 @@ class BulkReview(QWidget):
         self.tree = QTreeWidget()
         self.tree.setObjectName("bulkTree")
         self.tree.setColumnCount(3)
-        self.tree.setHeaderLabels(["Preset / módulo", "Antes", "Después"])
+        self.tree.setHeaderLabels([tr("Preset / módulo"), tr("Antes"), tr("Después")])
         self.tree.setIndentation(0)
         self.tree.setRootIsDecorated(False)
         self.tree.setUniformRowHeights(False)
@@ -103,32 +104,34 @@ class BulkReview(QWidget):
         self.tree.itemChanged.connect(lambda *_: self._count())
         self.tree.itemClicked.connect(self._clicked)
         self.tree.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.tree.setToolTip("Toca un preset para escucharlo en la pedalera")
+        self.tree.setToolTip(tr("Toca un preset para escucharlo en la pedalera"))
         layout.addWidget(self.tree, 1)
-        self.empty = QLabel("<p style='font-size:28px; margin:0'>⇄</p>"
+        self.empty = QLabel(tr("<p style='font-size:28px; margin:0'>⇄</p>"
                             "<p><b>Sin cambios pendientes</b></p>"
                             "<p>Lo que propone la IA o armas en la edición manual aparece aquí, "
                             "preset por preset, con el valor de antes y el de después.</p>"
                             "<p>Nada se escribe en la pedalera hasta que aprietes "
-                            "<b>Aplicar</b>.</p>")
+                            "<b>Aplicar</b>.</p>"))
         self.empty.setObjectName("emptyState")
         self.empty.setWordWrap(True)
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.empty, 1)
         row = QHBoxLayout()
-        self.discard = QPushButton("Descartar")
+        self.discard = QPushButton(tr("Descartar"))
         self.discard.clicked.connect(self.clear)
-        self.apply_button = QPushButton("Aplicar")
+        self.apply_button = QPushButton(tr("Aplicar"))
         self.apply_button.setObjectName("saveButton")
         self.apply_button.clicked.connect(self.apply)
         row.addWidget(self.discard)
         row.addStretch(1)
         row.addWidget(self.apply_button)
         layout.addLayout(row)
-        self.undo_button = QPushButton("↶  Deshacer la última edición aplicada")
+        self.undo_button = QPushButton(tr("↶  Deshacer la última edición aplicada"))
         self.undo_button.setObjectName("linkButton")
         self.undo_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.undo_button.setToolTip("Vuelve a escribir los presets como estaban antes de aplicar")
+        self.undo_button.setToolTip(tr(
+            "Vuelve a escribir los presets como estaban antes de aplicar",
+        ))
         self.undo_button.clicked.connect(self.undo)
         layout.addWidget(self.undo_button, 0, Qt.AlignmentFlag.AlignRight)
         runner.busy_changed.connect(lambda _: self._count())
@@ -156,8 +159,8 @@ class BulkReview(QWidget):
         self.edits_changed.emit()
         playable = [e for e in added if e.changed and not e.blocked]
         if playable and not self.listen(playable[0].slot, True, ask=False):
-            self.message.emit("Toca un preset en Cambios pendientes para escucharlo en la "
-                              "pedalera.")
+            self.message.emit(tr("Toca un preset en Cambios pendientes para escucharlo en la "
+                              "pedalera."))
 
     def clear(self) -> None:
         """«Descartar»: forget the changes; a preset being heard goes back to its saved sound."""
@@ -199,9 +202,15 @@ class BulkReview(QWidget):
                 return False
             loaded = state.presets.get(current)
             answer = QMessageBox.question(
-                self, "Escuchar en la pedalera",
-                f"El preset cargado ({current:03d} «{loaded.name if loaded else ''}») tiene "
-                f"cambios sin guardar.\n¿Descartarlos para escuchar {slot:03d} «{edit.name}»?")
+                self, tr("Escuchar en la pedalera"),
+                tr(
+                    "El preset cargado ({current:03d} «{name}») tiene cambios sin guardar.\n"
+                    "¿Descartarlos para escuchar {slot:03d} «{preview_name}»?",
+                    current=current,
+                    name=loaded.name if loaded else '',
+                    slot=slot,
+                    preview_name=edit.name,
+                ))
             if answer != QMessageBox.StandardButton.Yes:
                 return False
 
@@ -247,7 +256,7 @@ class BulkReview(QWidget):
         self.tree.clear()
         for slot in sorted(self.edits):
             edit = self.edits[slot]
-            sounding = "   🔊 sonando" if slot == self.playing else ""
+            sounding = tr("   🔊 sonando") if slot == self.playing else ""
             name = f"{edit.name} → {edit.new_name}" if edit.renamed else edit.name
             top = QTreeWidgetItem([f"{slot:03d}  {name}{sounding}"])
             top.setData(0, Qt.ItemDataRole.UserRole, slot)
@@ -283,15 +292,22 @@ class BulkReview(QWidget):
         playing = self.edits.get(self.playing or 0)
         self.bar.setVisible(playing is not None)
         if playing is not None:
-            self.playing_label.setText(f"Escuchando en la pedalera: <b>{playing.slot:03d} "
-                                       f"{html.escape(playing.name)}</b>")
+            self.playing_label.setText(tr(
+                "Escuchando en la pedalera: <b>{slot:03d} {name}</b>",
+                slot=playing.slot,
+                name=html.escape(playing.name),
+            ))
             self.sides.button(1 if self.playing_after else 0).setChecked(True)
         self._count()
 
     def _count(self) -> None:
         chosen = len(self.chosen())
         busy = self.runner.busy
-        self.apply_button.setText(f"Aplicar a {chosen} preset{'s' * (chosen != 1)}")
+        self.apply_button.setText(tr(
+            "Aplicar a {count} preset{plural}",
+            count=chosen,
+            plural='s' * (chosen != 1),
+        ))
         self.apply_button.setEnabled(chosen > 0 and not busy)
         self.badge.setText(f"{len(self.edits)} preset{'s' * (len(self.edits) != 1)}"
                            if self.edits else "")
@@ -311,8 +327,10 @@ class BulkReview(QWidget):
         chosen = self.chosen()
         if not chosen:
             return
-        self.message.emit(f"Haciendo un backup de la pedalera y escribiendo {len(chosen)} "
-                          "presets…")
+        self.message.emit(tr(
+            "Haciendo un backup de la pedalera y escribiendo {count} presets…",
+            count=len(chosen),
+        ))
 
         def done(result: bulk_edit.Applied) -> None:
             self.previous = result.previous
@@ -320,10 +338,17 @@ class BulkReview(QWidget):
                 self.edits.pop(preset.slot, None)
             self.playing = None  # the applied preset was loaded again with its new sound
             skipped = "; ".join(f"{slot:03d}: {why}" for slot, why in result.skipped)
-            saved = (f" Backup previo: {auto_backup.short(result.backup)}"
+            saved = (tr(" Backup previo: {backup}", backup=auto_backup.short(result.backup))
                      if result.backup else "")
-            self.message.emit(f"Listo: {len(result.previous)} presets escritos.{saved}"
-                              + (f" No se escribieron: {skipped}" if skipped else ""))
+            self.message.emit(tr(
+                "Listo: {count} presets escritos.{backup}",
+                count=len(result.previous),
+                backup=saved,
+            )
+                              + (tr(
+                                  " No se escribieron: {skipped}",
+                                  skipped=skipped,
+                              ) if skipped else ""))
             self._render()
             self.edits_changed.emit()
 
@@ -340,7 +365,10 @@ class BulkReview(QWidget):
 
         def done(slots: list[int]) -> None:
             self.previous = []
-            self.message.emit(f"Restaurados: {', '.join(f'{s:03d}' for s in slots)}.")
+            self.message.emit(tr(
+                "Restaurados: {slots}.",
+                slots=', '.join(f'{s:03d}' for s in slots),
+            ))
             self._count()
 
         self.runner.run(lambda: bulk_edit.restore(self.editor, previous,

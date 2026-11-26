@@ -169,3 +169,39 @@ def test_connect_account_without_choosing_a_tone(page: Tone3000Page) -> None:
     assert wait(lambda: "Cuenta conectada" in page.note.text())
     assert page.tone is None and page.connect_button.isHidden()
     assert wait(lambda: "wh01s17" in page.account.text())
+
+
+def test_catalog_applies_to_tone3000_and_load_confirmation(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ge150 import i18n
+
+    monkeypatch.setattr(i18n, "_catalog", {
+        "Catálogo": "Translated catalog",
+        "por {author}": "Creator: {author}",
+        "Confirmar": "Translated confirmation",
+        "¿Cargar «{title} / {model}» en la ranura IR {slot} (CAB {cab})?\n"
+        "Reemplaza «{old}».\n\nAutor: {author}\nLicencia: {license}\n{url}":
+            "Load {title} / {model} into slot {slot} (CAB {cab}), replacing {old}? "
+            "{author}, {license}, {url}",
+    })
+    page: Tone3000Page = request.getfixturevalue("page")
+    assert page.home_button.text() == "Translated catalog"
+    page._show_tone(TONE, MODELS)
+    assert page.detail.author.text() == "Creator: <b>irmaker</b>"
+
+    prompts = []
+
+    def decline(parent: object, title: str, question: str) -> QMessageBox.StandardButton:
+        prompts.append((title, question))
+        return QMessageBox.StandardButton.No
+
+    monkeypatch.setattr(QMessageBox, "question", decline)
+    page.loader._store(page.client.download(42, 8), 3)
+
+    assert len(prompts) == 1
+    title, question = prompts[0]
+    assert title == "Translated confirmation"
+    assert "Mesa 4x12 V30 / R121 into slot 4 (CAB 30)" in question
+    assert "irmaker, cc-by" in question
+    assert IrSources().load() == {}

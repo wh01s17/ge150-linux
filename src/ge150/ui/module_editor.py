@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.model.catalog import ModuleInfo
 from ge150.model.gear import FALLBACK, MODULE_TAGS, describe, gear_for
 from ge150.model.preset import MODULES, ModuleBlock
@@ -118,11 +119,11 @@ class ModuleEditor(QFrame):
         try:
             self.model.clear()
             # Separate the pedal's own models from the user slots (TONE3000 IRs, NR captures).
-            user_section = USER_SECTIONS.get(MODULE_TAGS[index], "")
+            user_section = tr(USER_SECTIONS.get(MODULE_TAGS[index], ""))
             pending = bool(user_section) and any(m.user_slot and not m.hidden
                                                  for m in self.info.models)
             if pending:
-                self.model.add_section("Modelos de la pedalera")
+                self.model.add_section(tr("Modelos de la pedalera"))
             for i, m in enumerate(self.info.models):
                 if m.hidden:  # e.g. AMP 56-65: NR slots the official editor hides too
                     self.model.skip_model()
@@ -138,7 +139,7 @@ class ModuleEditor(QFrame):
                 knobs = [KnobState(p.name, 0.5) for p in m.params if p.kind == "number"]
                 based = "\n" + describe(gear, load_photo(gear.gid) is not None)
                 self.model.add_model(label, gear, title, knobs,
-                                     label + (" (ranura de usuario)" if m.user_slot else "")
+                                     label + (tr(" (ranura de usuario)") if m.user_slot else "")
                                      + based)
         finally:
             self._loading = False
@@ -151,12 +152,12 @@ class ModuleEditor(QFrame):
             return ""
         slots = self.editor.presets_using(self.index, type_index)
         if not slots:
-            return "No la usa ningún preset."
+            return tr("No la usa ningún preset.")
         presets = self.editor.state.presets
         shown = [f"  {s:03d}  {presets[s].name}" for s in slots[:MAX_USERS_SHOWN]]
         more = len(slots) - MAX_USERS_SHOWN
-        return ("Usada en:\n" + "\n".join(shown)
-                + (f"\n  … y {more} más" if more > 0 else ""))
+        return (tr("Usada en:\n") + "\n".join(shown)
+                + (tr("\n  … y {more} más", more=more) if more > 0 else ""))
 
     def refresh(self) -> None:
         """Re-read the module from the edit buffer (after a notification)."""
@@ -181,7 +182,7 @@ class ModuleEditor(QFrame):
 
     def _show_switch(self, on: bool) -> None:
         self.switch.setChecked(on)
-        self.switch.setText("ON" if on else "OFF")
+        self.switch.setText(tr("ON" if on else "OFF"))
 
     def _update_view(self) -> None:
         gear, title, knobs, on = module_look(self.editor, self.index)
@@ -219,8 +220,8 @@ class ModuleEditor(QFrame):
         self._setup_mic()
         user = ""
         if model is not None and model.user_slot:
-            user = ("Ranura de usuario: el IR/NR cargado en la pedalera. "
-                    "Cárgalas desde la pestaña TONE3000 o en Herramientas → IR de usuario.")
+            user = (tr("Ranura de usuario: el IR/NR cargado en la pedalera. "
+                    "Cárgalas desde la pestaña TONE3000 o en Herramientas → IR de usuario."))
         self.note.setText(user)
 
     # --- user actions --------------------------------------------------------
@@ -233,7 +234,7 @@ class ModuleEditor(QFrame):
         self._update_view()
 
     def _on_switch(self, on: bool) -> None:
-        self.switch.setText("ON" if on else "OFF")
+        self.switch.setText(tr("ON" if on else "OFF"))
         if self._loading or self.editor.state.edit is None:
             return
         self._flush()

@@ -13,6 +13,7 @@ import threading
 from collections.abc import Callable, Mapping
 from typing import Any, TypeVar
 
+from ge150.i18n import tr
 from ge150.model.gear import MODULE_TAGS, describe, gear_for
 from ge150.model.preset import EXP_KEYS, EXP_OFFSET, MODULES, PRESET_COUNT
 from ge150.services import ai_permissions, tone_ai
@@ -266,8 +267,10 @@ class PedalTools:
             raise ToolError(f"slot must be 1..{PRESET_COUNT}")
         old = state.presets.get(target)
         label = name or (old.name if old else "")
-        self._ask(f"¿Guardar el sonido actual en el preset {target} «{label}»?\n"
-                  f"Reemplaza «{old.name if old else '?'}».")
+        self._ask(tr(
+            "¿Guardar el sonido actual en el preset {slot} «{name}»?\nReemplaza «{previous}».",
+            slot=target, name=label, previous=old.name if old else "?",
+        ))
 
         def run() -> dict[str, Any]:
             try:
@@ -360,8 +363,10 @@ class PedalTools:
         names = self.editor.state.user_names
         bank = list(names.ir) if names else [""] * 10
         sources = IrSources().matching(bank)
-        what = (f"la IR de TONE3000 «{tone.title} / {download.model.name}»\nde {tone.author} "
-                f"(licencia {tone.license})")
+        what = tr(
+            "la IR de TONE3000 «{title} / {model}»\nde {author} (licencia {license})",
+            title=tone.title, model=download.model.name, author=tone.author, license=tone.license,
+        )
         result = {"slot": 0, "model": "", "name": label, "tone": tone.title,
                   "file": download.model.name, "author": tone.author,
                   "license": tone.license, "url": tone.page_url}
@@ -373,15 +378,21 @@ class PedalTools:
                 slot = next((i + 1 for i, n in enumerate(bank) if msg.is_empty_slot_name(n)), 0)
             if slot:
                 old = bank[slot - 1]
-                replaces = "" if msg.is_empty_slot_name(old) else f"\nReemplaza «{old}»."
-                self._ask(f"¿Guardar {what} en la ranura {slot} (CAB {26 + slot}) como "
-                          f"«{label}»?{replaces}")
+                replaces = ("" if msg.is_empty_slot_name(old)
+                            else tr("\nReemplaza «{name}».", name=old))
+                self._ask(tr(
+                    "¿Guardar {ir} en la ranura {slot} (CAB {cab}) como «{name}»?{replaces}",
+                    ir=what, slot=slot, cab=26 + slot, name=label, replaces=replaces,
+                ))
             else:
-                slot = self._pick_slot(f"Las 10 ranuras de IR están ocupadas. ¿Cuál reemplazo "
-                                       f"por «{tone.title} / {download.model.name}» de "
-                                       f"{tone.author} (licencia {tone.license})?",
-                                       [_ir_entry(i, n, sources, self._ir_users())
-                                        for i, n in enumerate(bank)])
+                question = tr(
+                    "Las 10 ranuras de IR están ocupadas. ¿Cuál reemplazo por "
+                    "«{title} / {model}» de {author} (licencia {license})?",
+                    title=tone.title, model=download.model.name,
+                    author=tone.author, license=tone.license,
+                )
+                slot = self._pick_slot(question, [_ir_entry(i, n, sources, self._ir_users())
+                                                  for i, n in enumerate(bank)])
 
             def store() -> None:
                 self.editor.upload_user_slot(Op.USER_IR, slot - 1, label, payload)

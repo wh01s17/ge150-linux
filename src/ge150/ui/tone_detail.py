@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.services.tone3000 import fetch_image
 
 IMAGE = QSize(420, 260)
@@ -87,7 +88,7 @@ class ToneDetail(QFrame):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(self.description)
         layout.addWidget(scroll, 1)
-        self.open_button = QPushButton("Ver en TONE3000")
+        self.open_button = QPushButton(tr("Ver en TONE3000"))
         self.open_button.clicked.connect(self._open)
         layout.addWidget(self.open_button, 0, Qt.AlignmentFlag.AlignRight)
         self.show_slot(None, "")
@@ -100,24 +101,26 @@ class ToneDetail(QFrame):
         self.avatar.clear()
         if source is None:
             self.image.setPixmap(QPixmap())
-            self.image.setText("Sin IR de TONE3000" if name == "EMPTY" else
-                               "IR cargada desde un archivo WAV")
-            self.title.setText(name if name != "EMPTY" else "Ranura vacía")
+            self.image.setText(tr("Sin IR de TONE3000") if name == "EMPTY" else
+                               tr("IR cargada desde un archivo WAV"))
+            self.title.setText(name if name != "EMPTY" else tr("Ranura vacía"))
             self.author.setText("")
             self.file.setText("")
-            self.description.setText("Elige una IR en TONE3000 para esta ranura.")
+            self.description.setText(tr("Elige una IR en TONE3000 para esta ranura."))
             return
         self.image.setPixmap(QPixmap())
-        self.image.setText("Cargando imagen…" if source.get("image_url") else "Sin imagen")
+        self.image.setText(tr("Cargando imagen…") if source.get("image_url") else tr("Sin imagen"))
         self.title.setText(str(source.get("title", "")))
         author = html.escape(str(source.get("author", "")))
         link = source.get("author_url")
-        self.author.setText(f"por <a style='color:#ff8a1f' href='{html.escape(str(link))}'>"
-                            f"{author}</a>" if link else f"por <b>{author}</b>")
+        attribution = (f"<a style='color:#ff8a1f' href='{html.escape(str(link))}'>{author}</a>"
+                       if link else f"<b>{author}</b>")
+        self.author.setText(tr("por {author}", author=attribution))
         self.licence.setText(str(source.get("license", "")))
-        self.file.setText(f"Archivo: {source['model']}" if source.get("model") else "")
+        model = source.get("model")
+        self.file.setText(tr("Archivo: {name}", name=model) if model else "")
         description = str(source.get("description") or "").strip()
-        self.description.setText(description or "Sin descripción.")
+        self.description.setText(description or tr("Sin descripción."))
         for url in (source.get("image_url"), source.get("avatar_url")):
             if url:
                 self._load(str(url))
@@ -138,7 +141,7 @@ class ToneDetail(QFrame):
         pixmap = QPixmap(path) if path else QPixmap()
         if url == self.source.get("image_url"):
             if pixmap.isNull():
-                self.image.setText("Sin imagen")
+                self.image.setText(tr("Sin imagen"))
             else:
                 self.image.setPixmap(pixmap.scaled(
                     IMAGE, Qt.AspectRatioMode.KeepAspectRatio,

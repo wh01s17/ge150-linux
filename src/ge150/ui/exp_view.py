@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.model import exp
 from ge150.model.catalog import Param
 from ge150.model.exp import ExpSettings
@@ -55,12 +56,16 @@ def summary(settings: ExpSettings, short: bool = True) -> str:
     parts = []
     if name:
         parts.append(f"{SHORT[settings.module]} · {name}" if short
-                     else f"{name} del {MODULES[settings.module].name}")
+                     else tr(
+                         "{parameter} del {effect}",
+                         parameter=name,
+                         effect=MODULES[settings.module].name,
+                     ))
     if settings.volume_on:
-        parts.append("VOL" if short and parts else ("VOLUMEN" if short else "el volumen"))
+        parts.append("VOL" if short and parts else (tr("VOLUMEN") if short else tr("el volumen")))
     if not parts:
-        return "Sin asignar" if short else "nada"
-    return " + ".join(parts) if short else " y ".join(parts)
+        return tr("Sin asignar") if short else "nada"
+    return " + ".join(parts) if short else tr(" y ").join(parts)
 
 
 class ExpPedalArt(QWidget):
@@ -131,7 +136,7 @@ class ExpSideView(QWidget):
         super().__init__(parent)
         self.position: float | None = None
         self.label = ""
-        self.idle = "Sin posición"  # what it says without one
+        self.idle = tr("Sin posición")  # what it says without one
         self._shown = 0.5
         self._anim = QVariantAnimation(self)
         self._anim.setDuration(140)
@@ -224,7 +229,7 @@ class ExpTile(QFrame):
         super().__init__(parent)
         self.setObjectName("moduleTile")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("Pedal de expresión: clic para elegir qué controla en este preset")
+        self.setToolTip(tr("Pedal de expresión: clic para elegir qué controla en este preset"))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 6, 6, 6)
         layout.setSpacing(3)
@@ -242,7 +247,10 @@ class ExpTile(QFrame):
     def set_settings(self, settings: ExpSettings) -> None:
         active = bool(settings.function_on and settings.param_name) or settings.volume_on
         self.label.setText(summary(settings))
-        self.label.setToolTip(f"El pedal controla {summary(settings, short=False)}")
+        self.label.setToolTip(tr(
+            "El pedal controla {control}",
+            control=summary(settings, short=False),
+        ))
         self.label.setEnabled(active)
         self.art.set_lit(active)
         self.setProperty("on", active)
@@ -316,7 +324,7 @@ class ExpPage(QFrame):
 
         self.art = ExpPedalArt()
         self.art.setMinimumSize(220, 200)
-        caption = QLabel("Pedal de expresión de la GE150")
+        caption = QLabel(tr("Pedal de expresión de la GE150"))
         caption.setObjectName("basedOn")
         caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.side = ExpSideView()
@@ -345,7 +353,7 @@ class ExpPage(QFrame):
         self.unsaved.setObjectName("unsavedNotice")
         unsaved = QHBoxLayout(self.unsaved)
         unsaved.setContentsMargins(12, 6, 8, 6)
-        notice = QLabel("Guarda el preset para que el pedal use este cambio.")
+        notice = QLabel(tr("Guarda el preset para que el pedal use este cambio."))
         notice.setWordWrap(True)
         save = QPushButton("Guardar")
         save.setObjectName("saveButton")
@@ -355,11 +363,12 @@ class ExpPage(QFrame):
         unsaved.addWidget(save)
         layout.addWidget(self.unsaved)
 
-        layout.addWidget(_title("¿Qué controla el pedal?"))
+        layout.addWidget(_title(tr("¿Qué controla el pedal?")))
         modes = QHBoxLayout()
         modes.setSpacing(6)
         self.mode_buttons: dict[str, QPushButton] = {}
-        for key, label in self.MODES:
+        for key, source in self.MODES:
+            label = tr(source)
             button = _segment(label)
             button.clicked.connect(lambda _=False, k=key: self._choose_mode(k))
             self.mode_buttons[key] = button
@@ -375,10 +384,10 @@ class ExpPage(QFrame):
             spin.setRange(*exp.VOLUME_RANGE)
             spin.setKeyboardTracking(False)
             spin.valueChanged.connect(self._volume_range)
-        volume.addWidget(QLabel("Volumen mínimo"))
+        volume.addWidget(QLabel(tr("Volumen mínimo")))
         volume.addWidget(self.vol_min)
         volume.addSpacing(16)
-        volume.addWidget(QLabel("máximo"))
+        volume.addWidget(QLabel(tr("máximo")))
         volume.addWidget(self.vol_max)
         volume.addStretch(1)
         layout.addWidget(self.volume_box)
@@ -388,7 +397,7 @@ class ExpPage(QFrame):
         effect = QVBoxLayout(self.effect_box)
         effect.setContentsMargins(0, 4, 0, 0)
         effect.setSpacing(10)
-        self.choose = QLabel("Elige el efecto y el parámetro que moverá el pedal.")
+        self.choose = QLabel(tr("Elige el efecto y el parámetro que moverá el pedal."))
         self.choose.setObjectName("note")
         effect.addWidget(self.choose)
         grid = QGridLayout()
@@ -413,13 +422,13 @@ class ExpPage(QFrame):
         self.off_text = QLabel()
         self.off_text.setWordWrap(True)
         self.off_text.setStyleSheet("color: #f0c860;")
-        turn_on = QPushButton("Encenderlo")
+        turn_on = QPushButton(tr("Encenderlo"))
         turn_on.setObjectName("segment")
         turn_on.clicked.connect(self._turn_on)
         off.addWidget(self.off_text, 1)
         off.addWidget(turn_on)
         effect.addWidget(self.off_row)
-        effect.addWidget(_title("Parámetro"))
+        effect.addWidget(_title(tr("Parámetro")))
         self.params_box = QWidget()
         self.params_layout = QHBoxLayout(self.params_box)
         self.params_layout.setContentsMargins(0, 0, 0, 0)
@@ -503,13 +512,20 @@ class ExpPage(QFrame):
         name = settings.param_name if "effect" in modes else None
         parts = []
         if name:
-            parts.append(f"mueve <b>{name}</b> del <b>{MODULES[settings.module].name}</b> "
-                         f"({self._model_name(settings.module)})")
+            parts.append(tr(
+                "mueve <b>{parameter}</b> del <b>{effect}</b> ({model})",
+                parameter=name,
+                effect=MODULES[settings.module].name,
+                model=self._model_name(settings.module),
+            ))
         if "volume" in modes:
-            parts.append(f"controla el <b>volumen</b> (de {settings.vol_min} a "
-                         f"{settings.vol_max})")
-        self.now.setText(f"El pedal {' y '.join(parts)}." if parts
-                         else "El pedal no controla nada.")
+            parts.append(tr(
+                "controla el <b>volumen</b> (de {minimum} a {maximum})",
+                minimum=settings.vol_min,
+                maximum=settings.vol_max,
+            ))
+        self.now.setText(tr("El pedal {controls}.", controls=tr(" y ").join(parts)) if parts
+                         else tr("El pedal no controla nada."))
         self._update_position(settings, name)
         for key, button in self.mode_buttons.items():
             active = key in modes or (key == "none" and not modes)
@@ -528,7 +544,7 @@ class ExpPage(QFrame):
         for index in range(len(MODULES)):
             button = self.modules.button(index)
             block = self.editor.module(index)
-            state = "" if block.switch else "  · apagado"
+            state = "" if block.switch else tr("  · apagado")
             button.setText(f"{SHORT[index]}{state}\n{self._model_name(index)}")
             button.setChecked(assigned == index and block.switch)  # off: the warning says it
             button.setProperty("browsing", index == self.module and assigned != index)
@@ -536,24 +552,29 @@ class ExpPage(QFrame):
             # An effect that is off cannot be chosen: the pedal would move nothing you hear.
             button.setEnabled(block.switch)
             button.setToolTip("" if block.switch else
-                              f"El {MODULES[index].name} está apagado: enciéndelo con su LED en la "
-                              "cadena de efectos para poder asignarle el pedal.")
+                              tr(
+                                  "El {effect} está apagado: enciéndelo con su LED en la cadena de "
+                                  "efectos para poder asignarle el pedal.",
+                                  effect=MODULES[index].name,
+                              ))
         self._fill_models()
         self._fill_params(settings, assigned)
         # The pedal moves a parameter of an effect that is off: say why nothing is heard.
         assigned_off = assigned is not None and not self.editor.module(assigned).switch
         self.off_row.setVisible(assigned_off)
         if assigned_off:
-            self.off_text.setText(f"El {MODULES[settings.module].name} está apagado en este "
-                                  f"preset: mover el pedal no cambiará nada.")
+            self.off_text.setText(tr(
+                "El {effect} está apagado en este preset: mover el pedal no cambiará nada.",
+                effect=MODULES[settings.module].name,
+            ))
         self._refresh_wah(settings, name)
 
     def _update_position(self, settings: ExpSettings, name: str | None) -> None:
         """Where the pedal is, read from the parameter it moves (the pedal reports nothing
         else: not in volume mode)."""
         param = self._param_of(settings.module, settings.para) if name else None
-        self.side.idle = ("En volumen la GE150 no informa la posición" if settings.volume_on
-                          else "Sin posición")
+        self.side.idle = (tr("En volumen la GE150 no informa la posición") if settings.volume_on
+                          else tr("Sin posición"))
         if param is None or param.kind != "number" or param.max <= param.min:
             self.side.set_position(None)
             return
@@ -563,8 +584,12 @@ class ExpPage(QFrame):
             self.side.set_position(None)
             return
         self.side.set_position((value - param.min) / (param.max - param.min),
-                               f"{param.name} del {MODULES[settings.module].name}: "
-                               f"{param.format(raw)}")
+                               tr(
+                                   "{parameter} del {effect}: {value}",
+                                   parameter=param.name,
+                                   effect=MODULES[settings.module].name,
+                                   value=param.format(raw),
+                               ))
 
     def _model_name(self, index: int) -> str:
         return self.editor.model_display(index, self.editor.module(index).type)
@@ -585,7 +610,7 @@ class ExpPage(QFrame):
                 continue
             label = self.editor.model_label(self.module, type_index)
             if not exp.controllable(self.module, model):
-                label += "  (sin parámetros para el pedal)"
+                label += tr("  (sin parámetros para el pedal)")
             self.model.addItem(label, type_index)
         current = self.model.findData(self.editor.module(self.module).type)
         self.model.setCurrentIndex(current)
@@ -604,7 +629,7 @@ class ExpPage(QFrame):
                 widget.hide()  # deleteLater() alone leaves it drawn until the next event loop
                 widget.deleteLater()
         if self.module is None:
-            empty = QLabel("Todos los efectos están apagados: enciende alguno en la cadena.")
+            empty = QLabel(tr("Todos los efectos están apagados: enciende alguno en la cadena."))
             empty.setObjectName("note")
             self.params_layout.addWidget(empty)
             self.params_layout.addStretch(1)
@@ -620,7 +645,7 @@ class ExpPage(QFrame):
             self.params.addButton(button, para)
             self.params_layout.addWidget(button)
         if not params:
-            empty = QLabel("Este modelo no tiene parámetros que el pedal pueda mover.")
+            empty = QLabel(tr("Este modelo no tiene parámetros que el pedal pueda mover."))
             empty.setObjectName("note")
             self.params_layout.addWidget(empty)
         self.params_layout.addStretch(1)
@@ -677,7 +702,7 @@ class ExpPage(QFrame):
             return
         slot = self.editor.state.current_slot
         saved = self._before.pop((slot, settings.module, settings.para), None)
-        why = "su valor antes del pedal"
+        why = tr("su valor antes del pedal")
         if saved is None:
             # Assigned in the stored preset (not on this page): the live value follows the
             # pedal, the stored one does not, so that is the one to go back to.
@@ -687,15 +712,20 @@ class ExpPage(QFrame):
                 param = self._param_of(settings.module, settings.para)
                 if param is not None:
                     saved = (block.type, block.words[param.word])
-                    why = "su valor guardado en el preset"
+                    why = tr("su valor guardado en el preset")
         param = self._param_of(settings.module, settings.para)
         block = self.editor.module(settings.module)
         if saved is None or param is None or saved[0] != block.type:
             return  # another model since: the value would mean something else
         if block.words[param.word] != saved[1]:
             self.editor.set_word(settings.module, param.word, saved[1])
-            self.message.emit(f"{param.name} del {MODULES[settings.module].name} vuelve a "
-                              f"{param.format(saved[1])}, {why}")
+            self.message.emit(tr(
+                "{parameter} del {effect} vuelve a {value}, {reason}",
+                parameter=param.name,
+                effect=MODULES[settings.module].name,
+                value=param.format(saved[1]),
+                reason=why,
+            ))
 
     def _choose_mode(self, mode: str) -> None:
         self.view = mode
@@ -748,12 +778,28 @@ class ExpPage(QFrame):
         self.wah_button.setChecked(bool(name) and settings.module == FX and replace is None
                                    and name == WAH[1] and on)
         if replace is None:
-            self.wah_button.setText(f"Wah: el {WAH[1]} del {current}")
-            self.wah_button.setToolTip(f"El pedal mueve el {WAH[1]} del {current}")
+            self.wah_button.setText(tr(
+                "Wah: el {parameter} del {model}",
+                parameter=WAH[1],
+                model=current,
+            ))
+            self.wah_button.setToolTip(tr(
+                "El pedal mueve el {parameter} del {model}",
+                parameter=WAH[1],
+                model=current,
+            ))
         else:
-            self.wah_button.setText(f"Wah: {WAH[0]} en el FX (reemplaza {current})")
-            self.wah_button.setToolTip(f"Cambia el {current} del FX por un {WAH[0]} y el pedal "
-                                       f"mueve su {WAH[1]}")
+            self.wah_button.setText(tr(
+                "Wah: {wah} en el FX (reemplaza {model})",
+                wah=WAH[0],
+                model=current,
+            ))
+            self.wah_button.setToolTip(tr(
+                "Cambia el {model} del FX por un {wah} y el pedal mueve su {parameter}",
+                model=current,
+                wah=WAH[0],
+                parameter=WAH[1],
+            ))
 
     def _wah(self) -> None:
         replace, current, _ = self._wah_plan()

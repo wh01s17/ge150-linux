@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.services import bulk_edit
 from ge150.services.bulk_edit import PresetEdit
 from ge150.services.editor import Editor
@@ -79,11 +80,11 @@ class AssistantPage(QWidget):
         head.addWidget(self.count)
         left_layout.addLayout(head)
         self.filter = QLineEdit()
-        self.filter.setPlaceholderText("Filtrar por nombre (ej. av83)…")
+        self.filter.setPlaceholderText(tr("Filtrar por nombre (ej. av83)…"))
         self.filter.setClearButtonEnabled(True)
         self.filter.textChanged.connect(self._filter)
         self.filter.returnPressed.connect(lambda: self._tick_visible(True))
-        self.filter.setToolTip("Enter marca los presets que se ven")
+        self.filter.setToolTip(tr("Enter marca los presets que se ven"))
         left_layout.addWidget(self.filter)
         self.list = QListWidget()
         self.list.setObjectName("presetChecks")
@@ -97,11 +98,11 @@ class AssistantPage(QWidget):
         self._pressed_state: Qt.CheckState | None = None
         left_layout.addWidget(self.list, 1)
         row = QHBoxLayout()
-        tick = QPushButton("Marcar los visibles")
+        tick = QPushButton(tr("Marcar los visibles"))
         tick.setObjectName("linkButton")
         tick.setCursor(Qt.CursorShape.PointingHandCursor)
         tick.clicked.connect(lambda: self._tick_visible(True))
-        untick = QPushButton("Desmarcar todos")
+        untick = QPushButton(tr("Desmarcar todos"))
         untick.setObjectName("linkButton")
         untick.setCursor(Qt.CursorShape.PointingHandCursor)
         untick.clicked.connect(lambda: self._tick_visible(False, every=True))
@@ -134,9 +135,9 @@ class AssistantPage(QWidget):
         switch_layout.setContentsMargins(3, 3, 3, 3)
         switch_layout.setSpacing(2)
         self.modes = QButtonGroup(self)
-        for i, (label, tip) in enumerate((("✦  Con IA", "Pídeselo a Claude o Codex"),
-                                          ("Edición manual", "El mismo cambio para todos "
-                                                             "los presets marcados"))):
+        for i, (label, tip) in enumerate(((tr("✦  Con IA"), tr("Pídeselo a Claude o Codex")),
+                                          (tr("Edición manual"), tr("El mismo cambio para todos "
+                                                             "los presets marcados")))):
             button = QPushButton(label)
             button.setObjectName("modeTab")
             button.setCheckable(True)
@@ -271,7 +272,7 @@ class AssistantPage(QWidget):
                 item.setForeground(QBrush(QColor(ACCENT)) if on else QBrush())
         self.list.blockSignals(False)
         count = len(self.ticked())
-        self.count.setText(f"{count} marcado{'s' * (count != 1)}")
+        self.count.setText(tr("{count} marcado" if count == 1 else "{count} marcados", count=count))
         self.count.setProperty("on", count > 0)
         self.count.style().unpolish(self.count)
         self.count.style().polish(self.count)
@@ -290,20 +291,25 @@ class AssistantPage(QWidget):
         shown = ", ".join(f"{s:03d}" for s in slots[:3])
         more = f" +{len(slots) - 3}" if len(slots) > 3 else ""
         if not slots:
-            chip.setText("Sin presets marcados")
-            chip.setToolTip("Marca presets en la lista para que la IA sepa cuáles cambiar")
+            chip.setText(tr("Sin presets marcados"))
+            chip.setToolTip(tr("Marca presets en la lista para que la IA sepa cuáles cambiar"))
             return
         presets = self.editor.state.presets
         listed = "<br>".join(f"{s:03d} {presets[s].name}" for s in slots[:25] if s in presets)
         if len(slots) > 25:
-            listed += f"<br>… y {len(slots) - 25} más"
+            listed += tr("<br>… y {more} más", more=len(slots) - 25)
         if chip.isChecked():
-            chip.setText(f"Presets marcados: {shown}{more}")
-            chip.setToolTip(f"<b>Se envían con tu mensaje:</b><br>{listed}<br>"
-                            "<i>Clic para no incluirlos.</i>")
+            chip.setText(tr("Presets marcados: {shown}{more}", shown=shown, more=more))
+            chip.setToolTip(tr(
+                "<b>Se envían con tu mensaje:</b><br>{listed}<br><i>Clic para no incluirlos.</i>",
+                listed=listed,
+            ))
         else:
-            chip.setText(f"Presets marcados no incluidos: {shown}{more}")
-            chip.setToolTip(f"{listed}<br><i>Clic para incluirlos en tu mensaje.</i>")
+            chip.setText(tr("Presets marcados no incluidos: {shown}{more}", shown=shown, more=more))
+            chip.setToolTip(tr(
+                "{listed}<br><i>Clic para incluirlos en tu mensaje.</i>",
+                listed=listed,
+            ))
 
     def _context(self) -> str:
         slots = self.ticked()
@@ -339,10 +345,16 @@ class AssistantPage(QWidget):
         self.chat.save_state()
         blocked = sum(1 for e in edits if e.blocked)
         if edits:
-            note = (f" {blocked} ya no se pueden aplicar porque el preset cambió después."
+            note = (tr(
+                " {blocked} ya no se pueden aplicar porque el preset cambió después.",
+                blocked=blocked,
+            )
                     if blocked else "")
-            self.status.setText(f"Recuperé {len(edits)} cambios pendientes de esta "
-                                f"conversación.{note}")
+            self.status.setText(tr(
+                "Recuperé {count} cambios pendientes de esta conversación.{note}",
+                count=len(edits),
+                note=note,
+            ))
 
     def _state_changed(self) -> None:
         if not self._restoring:
@@ -356,5 +368,7 @@ class AssistantPage(QWidget):
     def show_proposal(self, edits: list[PresetEdit], summary: str) -> None:
         self.review.add(edits, summary)
         self.tick([e.slot for e in edits])
-        self.status.setText(f"La IA propone cambios en {len(edits)} presets: revísalos y "
-                            "aprieta Aplicar.")
+        self.status.setText(tr(
+            "La IA propone cambios en {count} presets: revísalos y aprieta Aplicar.",
+            count=len(edits),
+        ))

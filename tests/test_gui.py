@@ -12,9 +12,11 @@ QtWidgets = pytest.importorskip("PySide6.QtWidgets")
 from PySide6.QtCore import QCoreApplication  # noqa: E402
 from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
+from ge150.i18n import set_language  # noqa: E402
 from ge150.protocol.session import DeviceSession  # noqa: E402
 from ge150.services.editor import Editor  # noqa: E402
 from ge150.sim.sim_transport import SimTransport  # noqa: E402
+from ge150.ui.ai_permissions_dialog import AiPermissionsDialog  # noqa: E402
 from ge150.ui.main_window import MainWindow  # noqa: E402
 
 
@@ -807,3 +809,21 @@ def test_first_start_offers_shortcuts_once(window: MainWindow,
     assert window.shortcuts_action.text() == "Quitar accesos directos"
     window.toggle_shortcuts()  # QMessageBox.question is patched to Yes
     assert not shortcuts.installed()
+
+
+def test_ukrainian_catalog_translates_editor_and_assistant(request: pytest.FixtureRequest) -> None:
+    set_language("uk")
+    request.addfinalizer(lambda: set_language("es"))
+    window: MainWindow = request.getfixturevalue("window")
+
+    assert window.menuBar().actions()[0].text() == "&Файл"
+    assert window.tabs.tabText(0) == "Ефекти"
+    assert window.save_button.text() == "Зберегти"
+    assert window.presets.list.count() == 200
+    assert "PRESET 001" in window.header.text()
+    assert window.ai_panel.windowTitle() == "ШІ-асистент"
+    assert window.ai_panel.body.prompt.placeholderText().startswith("Опишіть звук")
+    assert window.assistant.ticks_chip.text() == "Немає позначених пресетів"
+    dialog = AiPermissionsDialog(window)
+    assert dialog.windowTitle() == "Дозволи асистента"
+    assert dialog.switches["save"].accessibleName() == "Зберігати пресети"

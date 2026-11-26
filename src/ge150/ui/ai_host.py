@@ -15,6 +15,7 @@ from typing import Any
 from PySide6.QtCore import QObject, QThread, Signal
 from PySide6.QtWidgets import QMessageBox, QWidget
 
+from ge150.i18n import tr
 from ge150.mcp_server.bridge import LocalServer
 from ge150.mcp_server.tools import GuardedTools, PedalTools
 from ge150.services.editor import Editor
@@ -97,7 +98,7 @@ class AiHost(QObject):
     def _question(self, question: str) -> bool:
         self.window.raise_()
         self.window.activateWindow()
-        answer = QMessageBox.question(self.window, "Asistente IA", question,
+        answer = QMessageBox.question(self.window, tr("Asistente IA"), question,
                                       QMessageBox.StandardButton.Yes
                                       | QMessageBox.StandardButton.No,
                                       QMessageBox.StandardButton.No)
