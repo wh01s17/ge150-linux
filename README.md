@@ -353,6 +353,13 @@ descargadas quedan en `~/.cache/ge150/tone3000/` y no se versionan.
 python3 -I tools/build_catalog.py       # regenera src/ge150/data/effects.json desde reference/
 ```
 
+La interfaz usa el español por defecto. Para añadir otro idioma, crea un catálogo JSON
+en `src/ge150/data/translations/` con el código del idioma como nombre de archivo,
+por ejemplo `fr.json`. Las claves son los textos originales marcados con `tr()`.
+Mantén los nombres de los parámetros como `{slot}` en los mensajes traducidos.
+Las entradas que falten se muestran en español. Prueba el catálogo con
+`ge150 --sim --language fr`.
+
 Regla del proyecto: ningún archivo de código supera 1000 líneas (ver `plan.md` §0).
 El material del fabricante (`reference/`) no se versiona.
 

@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ge150.i18n import tr
 from ge150.services import ai_permissions, guitars, tone_agent, tone_ai
 from ge150.services.chat_history import Chat, ChatEntry, ChatStore, new_id, title_for
 from ge150.services.guitars import GuitarStore
@@ -110,20 +111,20 @@ class AiChat(QWidget):
         self.provider = QComboBox()
         for key in tone_agent.available_agents():
             self.provider.addItem(tone_agent.AGENTS[key].name, key)
-        self.new_button = QPushButton("Nueva")
-        self.new_button.setToolTip("Empezar una conversación nueva")
+        self.new_button = QPushButton(tr("Nueva"))
+        self.new_button.setToolTip(tr("Empezar una conversación nueva"))
         self.new_button.clicked.connect(self.new_conversation)
         self.history_button = QToolButton()
         self.history_button.setObjectName("iconButton")
         self.history_button.setIcon(icon("history", MUTED_ICON, 16))
-        self.history_button.setToolTip("Historial de conversaciones")
+        self.history_button.setToolTip(tr("Historial de conversaciones"))
         self.history_button.setCheckable(True)
         self.history_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.history_button.toggled.connect(self._toggle_history)
         self.permissions_button = QToolButton()
         self.permissions_button.setObjectName("iconButton")
         self.permissions_button.setIcon(icon("settings", MUTED_ICON, 16))
-        self.permissions_button.setToolTip("Permisos del asistente")
+        self.permissions_button.setToolTip(tr("Permisos del asistente"))
         self.permissions_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.permissions_button.clicked.connect(self.edit_permissions)
         top.addWidget(self.provider, 1)
@@ -194,7 +195,7 @@ class AiChat(QWidget):
         box.addLayout(chips)
         self.prompt = _Prompt()
         self.prompt.setObjectName("aiPrompt")
-        self.prompt.setPlaceholderText("Describe el sonido…  (Enter envía, Shift+Enter salto)")
+        self.prompt.setPlaceholderText(tr("Describe el sonido…  (Enter envía, Shift+Enter salto)"))
         self.prompt.setFixedHeight(64)
         self.prompt.submitted.connect(self.ask)
         self.prompt.installEventFilter(self)
@@ -204,7 +205,9 @@ class AiChat(QWidget):
         self.undo_button = QToolButton()
         self.undo_button.setObjectName("pill")
         self.undo_button.setIcon(icon("undo", MUTED_ICON, 13))
-        self.undo_button.setToolTip("Deshacer: volver al sonido anterior al último cambio de la IA")
+        self.undo_button.setToolTip(tr(
+            "Deshacer: volver al sonido anterior al último cambio de la IA",
+        ))
         self.undo_button.clicked.connect(self.undo)
         self.options = AgentOptions()
         self.provider.currentIndexChanged.connect(
@@ -213,7 +216,7 @@ class AiChat(QWidget):
         self.ask_button = QToolButton()
         self.ask_button.setObjectName("sendButton")
         self.ask_button.setIcon(icon("arrow-up", "#1b1205", 16))
-        self.ask_button.setToolTip("Enviar (Enter)")
+        self.ask_button.setToolTip(tr("Enviar (Enter)"))
         self.ask_button.clicked.connect(self._send_or_stop)
         toolbar.addWidget(self.undo_button)
         toolbar.addWidget(self.options)
@@ -252,11 +255,11 @@ class AiChat(QWidget):
         on = self.context.isChecked()
         self.context.setIcon(icon("sliders" if on else "slash", ACCENT if on else MUTED_ICON, 13))
         if on:
-            self.context.setText(f"Preset actual: {label}")
-            self.context.setToolTip("Se envía con tu mensaje. Clic para no incluirlo.")
+            self.context.setText(tr("Preset actual: {label}", label=label))
+            self.context.setToolTip(tr("Se envía con tu mensaje. Clic para no incluirlo."))
         else:
-            self.context.setText(f"Preset actual no incluido: {label}")
-            self.context.setToolTip("Clic para incluir el preset actual en tu mensaje.")
+            self.context.setText(tr("Preset actual no incluido: {label}", label=label))
+            self.context.setToolTip(tr("Clic para incluir el preset actual en tu mensaje."))
 
     def _cabs_toggled(self, on: bool) -> None:
         QSettings("ge150", "editor").setValue("ai/tone3000_cabs", on)
@@ -269,16 +272,16 @@ class AiChat(QWidget):
         # Rich text, so Qt wraps it (a plain-text tooltip is one long line).
         if on:
             self.cabs.setToolTip(
-                "<b>Cabs de TONE3000: activado</b><br>"
+                tr("<b>Cabs de TONE3000: activado</b><br>"
                 "En cada sonido nuevo la IA busca un gabinete real en TONE3000,<br>"
                 "lo descarga en una ranura libre (o te pregunta cuál reemplazar)<br>"
-                "y lo pone en el CAB.<br><i>Clic para desactivar.</i>")
+                "y lo pone en el CAB.<br><i>Clic para desactivar.</i>"))
         else:
             self.cabs.setToolTip(
-                "<b>Cabs de TONE3000: desactivado</b><br>"
+                tr("<b>Cabs de TONE3000: desactivado</b><br>"
                 "La IA usa los CAB de fábrica, o una IR solo si se la pides.<br>"
                 "<i>Clic para que busque gabinetes reales en TONE3000<br>"
-                "(requiere iniciar sesión en TONE3000).</i>")
+                "(requiere iniciar sesión en TONE3000).</i>"))
 
     # --- the guitar in use ----------------------------------------------------------------
 
@@ -286,9 +289,9 @@ class AiChat(QWidget):
         guitar = self.guitars.current
         self.guitar.setProperty("on", guitar is not None)
         self.guitar.setIcon(icon("guitar", ACCENT if guitar else MUTED_ICON, 13))
-        self.guitar.setText(f"{guitar.title}  ⌄" if guitar else "Sin guitarra  ⌄")
-        self.guitar.setToolTip("Guitarra que estás usando: se envía con tu mensaje" if guitar
-                               else "Elige tu guitarra para que la IA la tenga en cuenta")
+        self.guitar.setText(f"{guitar.title}  ⌄" if guitar else tr("Sin guitarra  ⌄"))
+        self.guitar.setToolTip(tr("Guitarra que estás usando: se envía con tu mensaje") if guitar
+                               else tr("Elige tu guitarra para que la IA la tenga en cuenta"))
         self.guitar.style().unpolish(self.guitar)
         self.guitar.style().polish(self.guitar)
 
@@ -301,12 +304,12 @@ class AiChat(QWidget):
             action.setCheckable(True)
             action.setChecked(guitar.id == self.guitars.active)
             action.triggered.connect(lambda _=False, gid=guitar.id: self._use_guitar(gid))
-        none = menu.addAction("Sin guitarra")
+        none = menu.addAction(tr("Sin guitarra"))
         none.setCheckable(True)
         none.setChecked(self.guitars.current is None)
         none.triggered.connect(lambda: self._use_guitar(""))
         menu.addSeparator()
-        menu.addAction("Mis guitarras…").triggered.connect(self.manage_guitars)
+        menu.addAction(tr("Mis guitarras…")).triggered.connect(self.manage_guitars)
 
     def _use_guitar(self, guitar_id: str) -> None:
         self.guitars.use(guitar_id)
@@ -352,17 +355,20 @@ class AiChat(QWidget):
     def _welcome(self) -> None:
         if importlib.util.find_spec("mcp") is None:
             self._ready(False)
-            self._note("Falta el SDK de MCP: <code>pip install 'ge150-linux[ai]'</code>.")
+            self._note(tr("Falta el SDK de MCP: <code>pip install 'ge150-linux[ai]'</code>."))
         elif self.provider.count() == 0:
             self._ready(False)
-            self._note("No encontré <b>claude</b> ni <b>codex</b>. Instala Claude Code o Codex e "
-                       "inicia sesión con tu cuenta.")
+            self._note(tr(
+                "No encontré <b>claude</b> ni <b>codex</b>. Instala Claude Code o Codex e inicia "
+                "sesión con tu cuenta.",
+            ))
         else:
-            examples = "".join(f"<li>{html.escape(e)}</li>" for e in self.examples)
-            intro = self.welcome or ("Pide un sonido y lo ajusto <b>en vivo</b>. No se guarda "
-                                     "hasta que aprietes <b>Guardar</b> o me lo pidas (te "
-                                     "pregunto antes).")
-            self._note(f"{intro} Ejemplos:<ul>{examples}</ul>")
+            examples = "".join(f"<li>{html.escape(tr(e))}</li>" for e in self.examples)
+            intro = tr(self.welcome or (
+                "Pide un sonido y lo ajusto <b>en vivo</b>. No se guarda hasta que aprietes "
+                "<b>Guardar</b> o me lo pidas (te pregunto antes)."
+            ))
+            self._note(tr("{intro} Ejemplos:<ul>{examples}</ul>", intro=intro, examples=examples))
 
     # --- actions ----------------------------------------------------------------------
 
@@ -392,12 +398,12 @@ class AiChat(QWidget):
             list(edit.words) if edit is not None else None)
         self.compare.clear()
         self.prompt.clear()
-        self._bubble("Tú", html.escape(request).replace("\n", "<br>"), USER)
+        self._bubble(tr("Tú"), html.escape(request).replace("\n", "<br>"), USER)
         if not self.chat_id:
             self.chat_id, self.chat_created = new_id(), time.time()
             self.chat_title = title_for(request)
         self._save()
-        self._set_busy(True, f"{agent.name} está trabajando…")
+        self._set_busy(True, tr("{agent} está trabajando…", agent=agent.name))
 
         def work() -> None:
             try:
@@ -412,7 +418,7 @@ class AiChat(QWidget):
     def _send_or_stop(self) -> None:
         if self.busy:
             tone_agent.stop_all()
-            self.working.set_text("Deteniendo")
+            self.working.set_text(tr("Deteniendo"))
         else:
             self.ask()
 
@@ -423,8 +429,8 @@ class AiChat(QWidget):
             except Exception as exc:  # shown in the chat
                 self._done.noted.emit(f"<span style='color:{ERROR}'>{html.escape(str(exc))}</span>")
                 return
-            self._done.noted.emit("Volví al sonido anterior." if undone else
-                                  "No hay cambios de la IA para deshacer.")
+            self._done.noted.emit(tr("Volví al sonido anterior.") if undone else
+                                  tr("No hay cambios de la IA para deshacer."))
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -461,7 +467,7 @@ class AiChat(QWidget):
         try:
             self.store.save(Chat(entry, list(self.blocks), sessions, page))
         except (OSError, ValueError) as exc:
-            self.status.setText(f"No pude guardar la conversación: {exc}")
+            self.status.setText(tr("No pude guardar la conversación: {exc}", exc=exc))
 
     def save_state(self) -> None:
         """The page's state changed: keep it with the open conversation (if saved)."""
@@ -470,7 +476,7 @@ class AiChat(QWidget):
         try:
             self.store.save_state(self.chat_id, self.state_hook())
         except (OSError, ValueError) as exc:
-            self.status.setText(f"No pude guardar la conversación: {exc}")
+            self.status.setText(tr("No pude guardar la conversación: {exc}", exc=exc))
 
     def open_chat(self, chat_id: str) -> None:
         """Show a saved conversation as it was, continue its CLI sessions and load its preset
@@ -518,14 +524,19 @@ class AiChat(QWidget):
         current = state.presets.get(state.current_slot or 0)
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Question)
-        box.setWindowTitle("Abrir conversación")
-        box.setText(f"Esta conversación era sobre el preset {slot:03d} «{entry.preset}».\n"
-                    f"El preset cargado ({state.current_slot:03d} "
-                    f"«{current.name if current else ''}») tiene cambios sin guardar.")
-        change = box.addButton("Cambiar y descartar los cambios",
+        box.setWindowTitle(tr("Abrir conversación"))
+        box.setText(tr(
+            "Esta conversación era sobre el preset {slot:03d} «{name}».\nEl preset cargado "
+            "({current_slot:03d} «{current_name}») tiene cambios sin guardar.",
+            slot=slot,
+            name=entry.preset,
+            current_slot=state.current_slot,
+            current_name=current.name if current else '',
+        ))
+        change = box.addButton(tr("Cambiar y descartar los cambios"),
                                QMessageBox.ButtonRole.DestructiveRole)
-        keep = box.addButton("Abrir sin cambiar de preset", QMessageBox.ButtonRole.AcceptRole)
-        box.addButton("Cancelar", QMessageBox.ButtonRole.RejectRole)
+        keep = box.addButton(tr("Abrir sin cambiar de preset"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(tr("Cancelar"), QMessageBox.ButtonRole.RejectRole)
         box.setDefaultButton(keep)
         box.exec()
         if box.clickedButton() is change:
@@ -535,15 +546,27 @@ class AiChat(QWidget):
         return None
 
     def _select_preset(self, slot: int, name: str) -> None:
-        self.status.setText(f"Cargando el preset {slot:03d} «{name}» en la pedalera…")
+        self.status.setText(tr(
+            "Cargando el preset {slot:03d} «{name}» en la pedalera…",
+            slot=slot,
+            name=name,
+        ))
 
         def work() -> None:
             try:
                 self.host.tools.select_preset(slot, discard_changes=True)
             except Exception as exc:  # shown under the chat
-                self._done.status_text.emit(f"No pude cambiar al preset {slot:03d}: {exc}")
+                self._done.status_text.emit(tr(
+                    "No pude cambiar al preset {slot:03d}: {exc}",
+                    slot=slot,
+                    exc=exc,
+                ))
                 return
-            self._done.status_text.emit(f"Preset {slot:03d} «{name}» cargado en la pedalera.")
+            self._done.status_text.emit(tr(
+                "Preset {slot:03d} «{name}» cargado en la pedalera.",
+                slot=slot,
+                name=name,
+            ))
 
         threading.Thread(target=work, name="ge150-chat-preset", daemon=True).start()
 
@@ -564,7 +587,9 @@ class AiChat(QWidget):
             self.compare.offer(self._before, list(state.edit.words), state.current_slot)
         self._before = None
         if error == "stopped":
-            self._note("Detenido. Lo que alcanzó a cambiar sigue aplicado (Deshacer lo revierte).")
+            self._note(tr(
+                "Detenido. Lo que alcanzó a cambiar sigue aplicado (Deshacer lo revierte).",
+            ))
         elif error:
             self._note(f"<span style='color:{ERROR}'>Error: {html.escape(error)}</span>")
         elif isinstance(reply, str):
@@ -575,7 +600,7 @@ class AiChat(QWidget):
         """One line per step; the same tool called again in a row counts up (x3)."""
         if not self.busy:
             return
-        label = LABELS.get(tool, tool)
+        label = tr(LABELS.get(tool, tool))
         self.working.set_step(label)
         run = self._tool_run
         if run is not None and run[1] == tool and run[0] == len(self.blocks) - 1:
@@ -591,14 +616,14 @@ class AiChat(QWidget):
         """The step before is over: tick it."""
         run, self._tool_run = self._tool_run, None
         if run is not None and run[0] < len(self.blocks):
-            self.blocks[run[0]] = _tool_line(LABELS.get(run[1], run[1]), run[2], done=True)
+            self.blocks[run[0]] = _tool_line(tr(LABELS.get(run[1], run[1])), run[2], done=True)
             self._render_blocks()
 
     def _set_busy(self, busy: bool, text: str = "") -> None:
         self.busy = busy
         self.ask_button.setIcon(icon("square", ACCENT, 12) if busy else
                                 icon("arrow-up", "#1b1205", 16))
-        self.ask_button.setToolTip("Detener" if busy else "Enviar (Enter)")
+        self.ask_button.setToolTip(tr("Detener") if busy else tr("Enviar (Enter)"))
         self.ask_button.setProperty("busy", busy)
         self.ask_button.style().unpolish(self.ask_button)
         self.ask_button.style().polish(self.ask_button)

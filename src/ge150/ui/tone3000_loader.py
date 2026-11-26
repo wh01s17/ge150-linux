@@ -14,6 +14,7 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QInputDialog, QMessageBox, QWidget
 
 from ge150.formats import wav_ir
+from ge150.i18n import tr
 from ge150.protocol import messages as msg
 from ge150.protocol.opcodes import Op
 from ge150.services.editor import Editor
@@ -39,8 +40,8 @@ class Tone3000Loader(QObject):
         if self.client.creds.client_id:
             return True
         key, ok = QInputDialog.getText(
-            self.window, "TONE3000", "Clave publicable (Publishable Key, t3k_pub_…) de los "
-            "ajustes de API de tu cuenta de TONE3000:")
+            self.window, "TONE3000", tr("Clave publicable (Publishable Key, t3k_pub_…) de los "
+            "ajustes de API de tu cuenta de TONE3000:"))
         if not ok or not key.strip():
             return False
         self.client.set_client_id(key)
@@ -60,13 +61,13 @@ class Tone3000Loader(QObject):
 
     def add(self, tone_id: int, model_id: int | None, slot: int) -> None:
         """Download a tone chosen in the app and store it in ``slot`` (after confirming)."""
-        self.status.emit("Descargando la IR…")
+        self.status.emit(tr("Descargando la IR…"))
         self.background(lambda: self.client.download(tone_id, model_id), slot)
 
     def pick(self, slot: int) -> None:
         if not self.ensure_key():
             return
-        self.status.emit("Elige una IR en TONE3000 (se abrió el navegador)…")
+        self.status.emit(tr("Elige una IR en TONE3000 (se abrió el navegador)…"))
         self.background(lambda: self.client.download(self.client.select_tone()), slot)
 
     def _ready(self, result: object, error: str, slot: int) -> None:
@@ -85,11 +86,13 @@ class Tone3000Loader(QObject):
         tone = download.tone
         names = self.editor.state.user_names
         old = names.ir[slot] if names else "?"
-        answer = QMessageBox.question(
-            self.window, "Confirmar",
-            f"¿Cargar «{tone.title} / {download.model.name}» en la ranura IR {slot + 1} "
-            f"(CAB {27 + slot})?\nReemplaza «{old}».\n\nAutor: {tone.author}\n"
-            f"Licencia: {tone.license}\n{tone.page_url}")
+        question = tr(
+            "¿Cargar «{title} / {model}» en la ranura IR {slot} (CAB {cab})?\n"
+            "Reemplaza «{old}».\n\nAutor: {author}\nLicencia: {license}\n{url}",
+            title=tone.title, model=download.model.name, slot=slot + 1, cab=27 + slot,
+            old=old, author=tone.author, license=tone.license, url=tone.page_url,
+        )
+        answer = QMessageBox.question(self.window, tr("Confirmar"), question)
         if answer != QMessageBox.StandardButton.Yes:
             return
         name = tone.title[: msg.USER_NAME_LEN]

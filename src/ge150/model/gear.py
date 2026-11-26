@@ -15,6 +15,8 @@ from functools import cache
 from importlib import resources
 from pathlib import Path
 
+from ge150.i18n import tr
+
 PHOTO_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp")
 #: module index (preset layout order) -> tag used by gear.json / effects.json
 MODULE_TAGS = ("FX", "DS", "AMP", "CAB", "NS", "EQ", "MOD", "DELAY", "REVERB")
@@ -61,9 +63,9 @@ def describe(gear: Gear, has_photo: bool) -> str:
     """Caption under the picture: what the model is based on and what the photo shows."""
     if not gear.name:
         return ""
-    text = gear.name if gear.generic else f"Basado en {gear.name}"
+    text = gear.name if gear.generic else tr("Basado en {name}", name=gear.name)
     if gear.reference and has_photo:
-        text += f"  ·  foto de referencia: {gear.reference}"
+        text += tr("  ·  foto de referencia: {name}", name=gear.reference)
     return text
 
 

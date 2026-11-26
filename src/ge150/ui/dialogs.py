@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from ge150.formats import wav_ir
+from ge150.i18n import tr
 from ge150.protocol import messages as msg
 from ge150.protocol.opcodes import Op
 from ge150.services.editor import Editor
@@ -32,7 +33,7 @@ class IrDialog(QDialog):
     def __init__(self, editor: Editor, runner: TaskRunner, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.editor, self.runner = editor, runner
-        self.setWindowTitle("IR de usuario (CAB 27-36)")
+        self.setWindowTitle(tr("IR de usuario (CAB 27-36)"))
         self.resize(560, 380)
         self.sources = IrSources()
         from ge150.ui.tone3000_loader import Tone3000Loader
@@ -45,11 +46,13 @@ class IrDialog(QDialog):
         self.list = QListWidget()
         layout.addWidget(self.list, 1)
         buttons = QHBoxLayout()
-        self.upload = QPushButton("Cargar WAV…")
+        self.upload = QPushButton(tr("Cargar WAV…"))
         self.tone3000 = QPushButton("TONE3000…")
-        self.tone3000.setToolTip("Elegir una IR en el catálogo de TONE3000 y cargarla en la ranura")
-        self.delete = QPushButton("Borrar")
-        self.export = QPushButton("Exportar todos…")
+        self.tone3000.setToolTip(tr(
+            "Elegir una IR en el catálogo de TONE3000 y cargarla en la ranura",
+        ))
+        self.delete = QPushButton(tr("Borrar"))
+        self.export = QPushButton(tr("Exportar todos…"))
         for b in (self.upload, self.tone3000, self.delete, self.export):
             buttons.addWidget(b)
         layout.addLayout(buttons)
@@ -97,7 +100,7 @@ class IrDialog(QDialog):
 
     def _upload(self) -> None:
         slot = self._slot()
-        path, _ = QFileDialog.getOpenFileName(self, "Elegir IR", "", "WAV (*.wav)")
+        path, _ = QFileDialog.getOpenFileName(self, tr("Elegir IR"), "", "WAV (*.wav)")
         if not path:
             return
         try:
@@ -106,8 +109,12 @@ class IrDialog(QDialog):
             self._failed(str(exc))
             return
         name = Path(path).stem[: msg.USER_NAME_LEN]
-        answer = QMessageBox.question(self, "Confirmar",
-                                      f"¿Reemplazar la ranura IR {slot + 1} por «{name}»?")
+        answer = QMessageBox.question(self, tr("Confirmar"),
+                                      tr(
+                                          "¿Reemplazar la ranura IR {slot} por «{name}»?",
+                                          slot=slot + 1,
+                                          name=name,
+                                      ))
         if answer != QMessageBox.StandardButton.Yes:
             return
         self.runner.run(lambda: self.editor.upload_user_slot(Op.USER_IR, slot, name, payload),
@@ -115,7 +122,12 @@ class IrDialog(QDialog):
 
     def _delete(self) -> None:
         slot = self._slot()
-        answer = QMessageBox.question(self, "Confirmar", f"¿Borrar la ranura IR {slot + 1}?")
+        answer = QMessageBox.question(self, tr(
+            "Confirmar",
+        ), tr(
+            "¿Borrar la ranura IR {slot}?",
+            slot=slot + 1,
+        ))
         if answer != QMessageBox.StandardButton.Yes:
             return
         def deleted(_: object) -> None:
@@ -126,7 +138,7 @@ class IrDialog(QDialog):
                         self._failed)
 
     def _export(self) -> None:
-        directory = QFileDialog.getExistingDirectory(self, "Carpeta de destino")
+        directory = QFileDialog.getExistingDirectory(self, tr("Carpeta de destino"))
         if not directory:
             return
 
@@ -135,7 +147,11 @@ class IrDialog(QDialog):
                 clean = "".join(c if c.isalnum() or c in " -_" else "_" for c in chunk.name)
                 path = Path(directory) / f"IR{(chunk.slot or 0) + 1:02d} {clean.strip()}.wav"
                 path.write_bytes(wav_ir.ir_to_wav(wav_ir.unpack_planar(chunk.data)))
-            self.status.setText(f"{len(chunks)} IR exportados a {directory}")
+            self.status.setText(tr(
+                "{count} IR exportados a {directory}",
+                count=len(chunks),
+                directory=directory,
+            ))
 
         self.runner.run(self.editor.read_ir_backup, done, self._failed)
 
@@ -146,7 +162,7 @@ class IrSlotPicker(QDialog):
     def __init__(self, question: str, slots: list[dict[str, Any]],
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Asistente IA: elegir ranura de IR")
+        self.setWindowTitle(tr("Asistente IA: elegir ranura de IR"))
         self.resize(600, 420)
         layout = QVBoxLayout(self)
         label = QLabel(question)
@@ -159,8 +175,12 @@ class IrSlotPicker(QDialog):
             if source:
                 text += f"   · TONE3000: {source['author']} ({source['license']})"
             users = entry.get("used_by_presets") or []
-            text += f"\n          usada en {len(users)} preset{'s' * (len(users) != 1)}" \
-                if users else "\n          ningún preset la usa"
+            text += tr(
+                "\n          usada en {count} preset{plural}",
+                count=len(users),
+                plural='s' * (len(users) != 1),
+            ) \
+                if users else tr("\n          ningún preset la usa")
             self.list.addItem(text)
             if users:
                 shown = ", ".join(f"{n:03d}" for n in users[:20])
@@ -172,13 +192,13 @@ class IrSlotPicker(QDialog):
         self.list.setCurrentRow(fewest)
         self.list.itemDoubleClicked.connect(lambda _: self.accept())
         layout.addWidget(self.list, 1)
-        note = QLabel("Los presets que usan la ranura elegida sonarán con la nueva IR.")
+        note = QLabel(tr("Los presets que usan la ranura elegida sonarán con la nueva IR."))
         note.setObjectName("note")
         note.setWordWrap(True)
         layout.addWidget(note)
         buttons = QDialogButtonBox()
-        buttons.addButton("Cancelar", QDialogButtonBox.ButtonRole.RejectRole)
-        self.overwrite = buttons.addButton("Reemplazar", QDialogButtonBox.ButtonRole.AcceptRole)
+        buttons.addButton(tr("Cancelar"), QDialogButtonBox.ButtonRole.RejectRole)
+        self.overwrite = buttons.addButton(tr("Reemplazar"), QDialogButtonBox.ButtonRole.AcceptRole)
         self.overwrite.setDefault(True)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
